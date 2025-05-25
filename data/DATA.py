@@ -31,12 +31,12 @@ NAMESPACES = [
     Namespace("global-ai-cgd-pci-sit", "SIT"),
 ]
 
-ENVIRONMETS = ["SIT", "UAT", "PROD"]
+ENVIRONMENTS = ["SIT", "UAT", "PROD"]
 
 REGIONS = ["APAC", "EMEA", "LATAM", "NA"]
 
 DEFAULT_TEXT_REGION_DROPDOWN = "Select Region"
-DEFAULT_TEXT_ENVIRONMET_DROPDOWN = "Select Environment"
+DEFAULT_TEXT_ENVIRONMENT_DROPDOWN = "Select Environment"
 DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN = "Select Subscription"
 DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN = "Select Resource Group"
 DEFAULT_TEXT_CLUSTER_DROPDOWN = "Select Cluster"

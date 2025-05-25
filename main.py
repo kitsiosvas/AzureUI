@@ -96,7 +96,7 @@ class KubernetesInterface(GridLayout):
 
     def setup_left_column(self):
         # Dropdowns
-        self.environment_spinner    = ColoredSpinner(default_text=DEFAULT_TEXT_ENVIRONMET_DROPDOWN,     values=ENVIRONMETS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
+        self.environment_spinner    = ColoredSpinner(default_text=DEFAULT_TEXT_ENVIRONMENT_DROPDOWN,    values=ENVIRONMENTS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
         self.region_spinner         = ColoredSpinner(default_text=DEFAULT_TEXT_REGION_DROPDOWN,         values=REGIONS,     default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
         self.subscription_spinner   = ColoredSpinner(default_text=DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN,   values=[],          default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
         self.resource_group_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN, values=[],          default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
@@ -172,7 +172,7 @@ class KubernetesInterface(GridLayout):
         region_selected = self.region_spinner.text
         environment_selected = self.environment_spinner.text
 
-        if region_selected != DEFAULT_TEXT_REGION_DROPDOWN and environment_selected != DEFAULT_TEXT_ENVIRONMET_DROPDOWN:
+        if region_selected != DEFAULT_TEXT_REGION_DROPDOWN and environment_selected != DEFAULT_TEXT_ENVIRONMENT_DROPDOWN:
             # Filter subscriptions based on selected region and environment
             filtered_subscriptions = [
                 sub for sub in SUBSCRIPTIONS
@@ -192,7 +192,7 @@ class KubernetesInterface(GridLayout):
         environment_selected = self.environment_spinner.text
         current_namespace = self.namespace_spinner.text
 
-        if environment_selected == DEFAULT_TEXT_ENVIRONMET_DROPDOWN:
+        if environment_selected == DEFAULT_TEXT_ENVIRONMENT_DROPDOWN:
             self.namespace_spinner.values = []
             self.namespace_spinner.text = DEFAULT_TEXT_NAMESPACE_DROPDOWN
         else:
