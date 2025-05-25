@@ -1,0 +1,6 @@
+WHITE = (1, 1, 1, 1)
+LIGHT_GRAY = (0.8, 0.8, 0.8, 0.8)
+GRAY = (0.8, 0.8, 0.8, 1)
+DARK_GRAY = (0.5, 0.5, 0.5, 1)
+DARK_BLUE = (0.5, 0.5, 1, 1)
+DROPDOWN_SELECTED_GREEN = (0.0, 1.0, 0.0, 1)
