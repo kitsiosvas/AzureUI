@@ -65,30 +65,6 @@ class KubernetesInterface(BoxLayout):
         # Tabbed content area
         from kivy.core.window import Window
         self.tab_panel = TabbedPanel(do_default_tab=False, tab_width=Window.width*0.2, tab_height=Window.height * 0.08, background_color=DARK_GRAY)
-        
-        # Pods Tab
-        pods_tab = TabbedPanelItem(text='Pods')
-        pods_content = BoxLayout(orientation='vertical')
-        self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40, disabled=True)
-        self.get_pods_button.bind(on_press=self.get_pods_button_callback)
-        pods_content.add_widget(self.get_pods_button)
-        
-        self.pods_container = ScrollView(size_hint_y=0.5)
-        self.pods_grid = GridLayout(cols=1, size_hint_y=None)
-        self.pods_grid.bind(minimum_height=self.pods_grid.setter('height'))
-        self.pods_container.add_widget(self.pods_grid)
-        pods_content.add_widget(self.pods_container)
-        
-        logs_layout = BoxLayout(orientation='horizontal', size_hint_y=0.4)
-        self.logs_output = TextInput(multiline=True, readonly=True, size_hint_x=0.7)
-        self.fetch_logs_button = Button(text='Fetch Logs', size_hint=(0.3, None), height=40, disabled=True)
-        self.fetch_logs_button.bind(on_press=self.fetch_logs_button_callback)
-        logs_layout.add_widget(self.logs_output)
-        logs_layout.add_widget(self.fetch_logs_button)
-        pods_content.add_widget(logs_layout)
-        
-        pods_tab.content = pods_content
-        self.tab_panel.add_widget(pods_tab)
 
         # Merge Tab
         merge_tab = TabbedPanelItem(text='Merge')
@@ -98,6 +74,27 @@ class KubernetesInterface(BoxLayout):
         merge_tab.content = merge_content
         self.tab_panel.add_widget(merge_tab)
 
+        # Pods Tab
+        pods_tab = TabbedPanelItem(text='Pods')
+        pods_content = BoxLayout(orientation='vertical')
+        self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40, disabled=True)
+        self.get_pods_button.bind(on_press=self.get_pods_button_callback)
+        pods_content.add_widget(self.get_pods_button)
+        self.pods_container = ScrollView(size_hint_y=0.5)
+        self.pods_grid = GridLayout(cols=1, size_hint_y=None)
+        self.pods_grid.bind(minimum_height=self.pods_grid.setter('height'))
+        self.pods_container.add_widget(self.pods_grid)
+        pods_content.add_widget(self.pods_container)
+        logs_layout = BoxLayout(orientation='horizontal', size_hint_y=0.4)
+        self.logs_output = TextInput(multiline=True, readonly=True, size_hint_x=0.7)
+        self.fetch_logs_button = Button(text='Fetch Logs', size_hint=(0.3, None), height=40, disabled=True)
+        self.fetch_logs_button.bind(on_press=self.fetch_logs_button_callback)
+        logs_layout.add_widget(self.logs_output)
+        logs_layout.add_widget(self.fetch_logs_button)
+        pods_content.add_widget(logs_layout)
+        pods_tab.content = pods_content
+        self.tab_panel.add_widget(pods_tab)
+
         # Placeholder Tab
         placeholder_tab = TabbedPanelItem(text='Future Commands')
         placeholder_content = BoxLayout(orientation='vertical')
@@ -106,7 +103,7 @@ class KubernetesInterface(BoxLayout):
         self.tab_panel.add_widget(placeholder_tab)
 
         # Set default tab
-        self.tab_panel.default_tab = pods_tab
+        self.tab_panel.default_tab = merge_tab
 
         # Add tabs to root
         self.add_widget(self.tab_panel)
