@@ -94,8 +94,6 @@ class KubernetesInterface(GridLayout):
         self.setup_second_column()
         self.setup_third_column()
 
-
-
     def setup_left_column(self):
         # Dropdowns
         self.environment_spinner    = ColoredSpinner(default_text=DEFAULT_TEXT_ENVIRONMET_DROPDOWN,     values=ENVIRONMETS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
@@ -103,7 +101,7 @@ class KubernetesInterface(GridLayout):
         self.subscription_spinner   = ColoredSpinner(default_text=DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN,   values=[],          default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
         self.resource_group_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN, values=[],          default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
         self.cluster_spinner        = ColoredSpinner(default_text=DEFAULT_TEXT_CLUSTER_DROPDOWN,        values=[],          default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
-        self.namespace_spinner      = ColoredSpinner(default_text=DEFAULT_TEXT_NAMESPACE_DROPDOWN,      values=NAMESPACES,  default_color=DARK_BLUE, selected_color=DARK_BLUE,               size_hint_y=None, height=40)
+        self.namespace_spinner      = ColoredSpinner(default_text=DEFAULT_TEXT_NAMESPACE_DROPDOWN,      values=[],          default_color=DARK_BLUE, selected_color=DARK_BLUE,               size_hint_y=None, height=40)
 
         # Bind selection changes
         self.region_spinner.bind(text=self.region_spinner_selection_callback)
@@ -114,15 +112,16 @@ class KubernetesInterface(GridLayout):
         self.namespace_spinner.bind(text=self.namespace_spinner_selection_callback)
 
         # Add dropdowns
-        self.left_column.add_widget(self.namespace_spinner)
         self.left_column.add_widget(self.region_spinner)
         self.left_column.add_widget(self.environment_spinner)
         self.left_column.add_widget(self.subscription_spinner)
         self.left_column.add_widget(self.resource_group_spinner)
         self.left_column.add_widget(self.cluster_spinner)
+        self.left_column.add_widget(self.namespace_spinner)
+
 
         # Merge Button
-        self.merge_button = Button(text='Merge', disabled=True, size_hint_y=None, height=40)  # Start as disabled
+        self.merge_button = Button(text='Merge', disabled=True, size_hint_y=None, height=40)
         self.merge_button.bind(on_press=self.merge_button_callback)
         self.left_column.add_widget(self.merge_button)
 
@@ -140,7 +139,7 @@ class KubernetesInterface(GridLayout):
         # Get Pods Button
         self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40)
         self.get_pods_button.bind(on_press=self.get_pods_button_callback)
-        self.get_pods_button.disabled = True  # Start as disabled
+        self.get_pods_button.disabled = True
         self.second_column.add_widget(self.get_pods_button)
 
         # Container for Pods
@@ -157,16 +156,17 @@ class KubernetesInterface(GridLayout):
 
     def setup_third_column(self):
         # New TextInput for Log Output
-        self.logs_output = TextInput(multiline=True, readonly=True)  
+        self.logs_output = TextInput(multiline=True, readonly=True)
         self.third_column.add_widget(self.logs_output)
 
     def region_spinner_selection_callback(self, spinner, text):
-        """ Update the subscription spinner based on selected region. """
+        """Update the subscription spinner based on selected region."""
         self.update_subscription_spinner()
 
     def environment_spinner_selection_callback(self, spinner, text):
-        """ Update the subscription spinner based on selected environment. """
+        """Update the subscription and namespace spinners based on selected environment."""
         self.update_subscription_spinner()
+        self.update_namespace_spinner()
 
     def update_subscription_spinner(self):
         region_selected = self.region_spinner.text
@@ -178,8 +178,6 @@ class KubernetesInterface(GridLayout):
                 sub for sub in SUBSCRIPTIONS
                 if sub.region == region_selected and sub.environment == environment_selected
             ]
-            
-            # Update the subscription spinner's values
             self.subscription_spinner.values = [sub.name for sub in filtered_subscriptions]
             self.subscription_spinner.text = DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN  # Reset to default
 
@@ -189,16 +187,29 @@ class KubernetesInterface(GridLayout):
             self.resource_group_spinner.text = DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN
             self.cluster_spinner.text = DEFAULT_TEXT_CLUSTER_DROPDOWN
 
+    def update_namespace_spinner(self):
+        """Update the namespace spinner based on the selected environment."""
+        environment_selected = self.environment_spinner.text
+        current_namespace = self.namespace_spinner.text
+
+        if environment_selected == DEFAULT_TEXT_ENVIRONMET_DROPDOWN:
+            self.namespace_spinner.values = []
+            self.namespace_spinner.text = DEFAULT_TEXT_NAMESPACE_DROPDOWN
+        else:
+            filtered_namespaces = [ns.name for ns in NAMESPACES if ns.environment == environment_selected]
+            self.namespace_spinner.values = filtered_namespaces
+            if current_namespace in filtered_namespaces:
+                self.namespace_spinner.text = current_namespace
+            else:
+                self.namespace_spinner.text = DEFAULT_TEXT_NAMESPACE_DROPDOWN
+
     def subscription_spinner_selection_callback(self, spinner, text):
         """Update the resource group spinner based on the selected subscription."""
         self.selected_subscription = next((sub for sub in SUBSCRIPTIONS if sub.name == text), None)
-
         if self.selected_subscription:
             self.resource_group_spinner.values = list(self.selected_subscription.resource_groups.keys())
             self.resource_group_spinner.text = DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN
-
             self.reset_merge_state()
-
         self.check_merge_button_state()
         self.check_get_pods_button_state()
 
@@ -207,25 +218,23 @@ class KubernetesInterface(GridLayout):
         if self.selected_subscription:
             self.cluster_spinner.values = self.selected_subscription.resource_groups.get(text, [])
             self.cluster_spinner.text = DEFAULT_TEXT_CLUSTER_DROPDOWN
-
             self.reset_merge_state()
-
         self.check_merge_button_state()
         self.check_get_pods_button_state()
 
     def cluster_spinner_selection_callback(self, spinner, text):
-        """ Reset the merge state when the cluster selection changes. """
+        """Reset the merge state when the cluster selection changes."""
         self.reset_merge_state()
         self.check_merge_button_state()
         self.check_get_pods_button_state()
 
     def namespace_spinner_selection_callback(self, spinner, text):
-        """ Reset the merge state when the namespace selection changes. """
+        """Reset the merge state when the namespace selection changes."""
         self.check_merge_button_state()
         self.check_get_pods_button_state()
 
     def reset_merge_state(self):
-        """ Reset the merge_successful state if any dropdown selection changes. """
+        """Reset the merge_successful state if any dropdown selection changes."""
         self.merge_successful = False
 
     def check_merge_button_state(self, *args):
@@ -233,7 +242,6 @@ class KubernetesInterface(GridLayout):
         subscription = self.subscription_spinner.text
         resource_group = self.resource_group_spinner.text
         cluster = self.cluster_spinner.text
-
         if subscription != DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN and resource_group != DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN and cluster != DEFAULT_TEXT_CLUSTER_DROPDOWN:
             self.merge_button.disabled = False
         else:
@@ -241,14 +249,14 @@ class KubernetesInterface(GridLayout):
 
         # Disable the button if selections haven't changed
         if (
-            (self.last_selection[0] == subscription and
-             self.last_selection[1] == resource_group and
-             self.last_selection[2] == cluster)
+            self.last_selection[0] == subscription and
+            self.last_selection[1] == resource_group and
+            self.last_selection[2] == cluster
         ):
             self.merge_button.disabled = True
 
     def show_progress_popup(self, title):
-        """ Show progress popup. """
+        """Show progress popup."""
         self.progress_bar.value = 0
         self.popup = Popup(title=title,
                            content=Label(text="Please wait..."),
@@ -256,12 +264,10 @@ class KubernetesInterface(GridLayout):
         self.popup.open()
 
     def merge_button_callback(self, instance):
-        """ Execute the merge command using AzureClient. """
+        """Execute the merge command using AzureClient."""
         subscription = self.subscription_spinner.text
         resource_group = self.resource_group_spinner.text
         cluster = self.cluster_spinner.text
-
-        # Use AzureClient to execute the merge command
         self.show_progress_popup("Executing")
         self.azure_client.execute_merge(subscription, resource_group, cluster, self.display_merge_result)
 
@@ -276,37 +282,34 @@ class KubernetesInterface(GridLayout):
         self.get_pods_button.disabled = not (namespace_selected and self.merge_successful)
 
     def display_merge_result(self, output):
-        """ Output the command result to the text box. """
+        """Output the command result to the text box."""
         self.merge_output_text.text = output
-        self.merge_successful = "error" not in output.lower()  # Update whether the previous merge was successful
+        self.merge_successful = "error" not in output.lower()
         self.check_get_pods_button_state()
         self.popup.dismiss()
 
     def display_get_pods_result(self, output):
-        """ Update pods based on the command result. """
-        self.pods_grid.clear_widgets()  # Clear previous pod entries
+        """Update pods based on the command result."""
+        self.pods_grid.clear_widgets()
         pods_output = output.strip()
         if pods_output:
-            pods_lines = pods_output.split('\n')[1:]  # Skip header line
+            pods_lines = pods_output.split('\n')[1:]
             for line in pods_lines:
-                if line:  # Check for non-empty line
-                    pod_name = line.split()[0]  # Assuming the first column is the pod name
+                if line:
+                    pod_name = line.split()[0]
                     radio_button = ToggleButton(text=pod_name, group='pods', size_hint_y=None, height=40)
-                    # Bind the toggle button state change to our callback method
                     radio_button.bind(on_press=self.pod_button_callback)
                     self.pods_grid.add_widget(radio_button)
-
         self.popup.dismiss()
         self.check_get_logs_button_state()
 
     def pod_button_callback(self, toggle_button):
-        """ Handle the state change of the pod selection toggle button. """
+        """Handle the state change of the pod selection toggle button."""
         self.check_get_logs_button_state()
 
     def get_pods_button_callback(self, instance):
-        """ Get pods using AzureClient. """
+        """Get pods using AzureClient."""
         namespace = self.namespace_spinner.text
-
         self.show_progress_popup("Getting Pods")
         self.azure_client.get_pods(namespace, callback=self.display_get_pods_result)
 
@@ -319,23 +322,21 @@ class KubernetesInterface(GridLayout):
                 break
 
     def fetch_logs_button_callback(self, instance):
-        """ Fetch logs using AzureClient. """
+        """Fetch logs using AzureClient."""
         selected_pod = None
         for widget in self.pods_grid.children:
             if isinstance(widget, ToggleButton) and widget.state == 'down':
-                selected_pod = widget.text  # Get the text of the selected button
+                selected_pod = widget.text
                 break
-                
         namespace = self.namespace_spinner.text
         if selected_pod:
             self.show_progress_popup("Fetching Logs")
             self.azure_client.get_logs(selected_pod, namespace, self.display_get_logs_result)
-    
-    def display_get_logs_result(self, output):
-        """ Update logs display based on the command result. """
-        self.logs_output.text = output  # Display logs in the third column
-        self.popup.dismiss()  # Dismiss the progress popup
 
+    def display_get_logs_result(self, output):
+        """Update logs display based on the command result."""
+        self.logs_output.text = output
+        self.popup.dismiss()
 
 class KubernetesApp(App):
     def build(self):

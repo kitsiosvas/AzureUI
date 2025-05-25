@@ -1,4 +1,4 @@
-from kubernetes.entities import Subscription
+from kubernetes.entities import Subscription, Namespace
 
 SUBSCRIPTIONS = [
     Subscription("sub-apac-sit", "APAC", "SIT", {
@@ -11,7 +11,6 @@ SUBSCRIPTIONS = [
     Subscription("sub-eune-sit", "EMEA", "SIT", {
         "rg-eune-sit-01": ["aks-eune-sit-1"],
     }),
-
     Subscription("sub-la-prod", "LATAM", "PROD", {
         "rg-la-prod-01": ["aks-la-prod-1"],
     }),
@@ -23,15 +22,18 @@ SUBSCRIPTIONS = [
     }),
 ]
 
-
-NAMESPACES = ["global-ai-mlops-sit", "global-ai-cgd-sit", "global-ai-mlops-prod", 
-              "global-ai-cgd-prod", "global-ai-cgd-pci-sit"]
+NAMESPACES = [
+    Namespace("global-ai-mlops-sit", "SIT"),
+    Namespace("global-ai-mlops-prod", "PROD"),
+    Namespace("global-ai-cgd-sit", "SIT"),
+    Namespace("global-ai-cgd-prod", "PROD"),
+    Namespace("global-ai-cgd-pci-prod", "PROD"),
+    Namespace("global-ai-cgd-pci-sit", "SIT"),
+]
 
 ENVIRONMETS = ["SIT", "UAT", "PROD"]
 
 REGIONS = ["APAC", "EMEA", "LATAM", "NA"]
-
-
 
 DEFAULT_TEXT_REGION_DROPDOWN = "Select Region"
 DEFAULT_TEXT_ENVIRONMET_DROPDOWN = "Select Environment"

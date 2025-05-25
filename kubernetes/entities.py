@@ -7,3 +7,11 @@ class Subscription:
 
     def __repr__(self):
         return f"Subscription(name={self.name}, region={self.region}, environment={self.environment})"
+
+class Namespace:
+    def __init__(self, name, environment):
+        self.name = name
+        self.environment = environment
+
+    def __repr__(self):
+        return f"Namespace(name={self.name}, environment={self.environment})"
