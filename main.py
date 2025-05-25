@@ -229,24 +229,25 @@ class KubernetesInterface(BoxLayout):
         resource_group = self.resource_group_spinner.text
         cluster = self.cluster_spinner.text
         self.show_progress_popup("Executing", "Merging cluster...")
-        self.azure_client.execute_merge(subscription, resource_group, cluster, self.display_merge_result)
+        output, success = self.azure_client.execute_merge(subscription, resource_group, cluster)
+        self.display_merge_result(output, success)
         self.last_merged_subscription = subscription
         self.last_merged_resource_group = resource_group
         self.last_merged_cluster = cluster
+
+    def display_merge_result(self, output, success):
+        """Output the command result to the text box."""
+        self.merge_output_text.text = output
+        self.merge_successful = success
+        if self.progress_schedule:
+            self.progress_schedule.cancel()
+        self.popup.dismiss()
+        self.check_get_pods_button_state()
 
     def check_get_pods_button_state(self):
         """Enable the Get Pods button if the namespace is selected and merge was successful."""
         namespace_selected = self.namespace_spinner.text != DEFAULT_TEXT_NAMESPACE_DROPDOWN
         self.get_pods_button.disabled = not (namespace_selected and self.merge_successful)
-
-    def display_merge_result(self, output):
-        """Output the command result to the text box."""
-        self.merge_output_text.text = output
-        self.merge_successful = "error" not in output.lower()
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
-        self.popup.dismiss()
-        self.check_get_pods_button_state()
 
     def display_get_pods_result(self, output):
         """Update pods based on the command result."""
