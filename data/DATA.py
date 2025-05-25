@@ -1,32 +1,31 @@
 from kubernetes.entities import Subscription
 
 SUBSCRIPTIONS = [
-    Subscription("sub-apas-sit01", "APAC", "SIT", {
-        "rg-apass-bsn0020539-01": ["aks-apass-bsn0020539-01"],
+    Subscription("sub-apac-sit", "APAC", "SIT", {
+        "rg-apac-sit-01": ["aks-apac-sit-1"],
     }),
-    Subscription("sub-nau2-sit01", "NA", "SIT", {
-        "rg-nau2s-bsn0017692-01": ["aks-nau2s-bsn0017692-03"],
-        "rg-nau2s-bsn0020579-01": ["aks-nau2s-bsn0020579-01"]
+    Subscription("sub-na-sit", "NA", "SIT", {
+        "rg-na-sit-02": ["aks-na-sit-2"],
+        "rg-na-sit-01": ["aks-na-sit-1", "aks-na-sit-3"]
     }),
-    Subscription("sub-eune-sit01", "EMEA", "SIT", {
-        "rg-eunes-bsn0020578-01": ["aks-eunes-bsn0020578-01"],
+    Subscription("sub-eune-sit", "EMEA", "SIT", {
+        "rg-eune-sit-01": ["aks-eune-sit-1"],
     }),
 
-
-    Subscription("sub-lau2-prod01", "LATAM", "PROD", {
-        "rg-lau2p-bsn0020442-01": ["aks-lau2p-bsn0020442-01"],
+    Subscription("sub-la-prod", "LATAM", "PROD", {
+        "rg-la-prod-01": ["aks-la-prod-1"],
     }),
-    Subscription("sub-nau2-prod01", "NA", "PROD", {
-        "rg-nau2p-bsn0020581-01": ["aks-nau2p-bsn0020581-01"],
+    Subscription("sub-na-prod", "NA", "PROD", {
+        "rg-na-prod-01": ["aks-na-prod-1"],
     }),
-    Subscription("sub-eune-prod01", "EMEA", "PROD", {
-        "rg-eunep-bsn0020582-01": ["aks-eunep-bsn0020582-01"],
+    Subscription("sub-eune-prod", "EMEA", "PROD", {
+        "rg-eune-prod-01": ["aks-eune-prod-01"],
     }),
 ]
 
 
-NAMESPACES = ["global-ai-mlops-sit", "global-ai-cgd-sit", "global-ai-cgd-pci-sit",
-              "global-ai-mlops-prod", "global-ai-cgd-prod", "global-ai-cgd-pci-sit"]
+NAMESPACES = ["global-ai-mlops-sit", "global-ai-cgd-sit", "global-ai-mlops-prod", 
+              "global-ai-cgd-prod", "global-ai-cgd-pci-sit"]
 
 ENVIRONMETS = ["SIT", "UAT", "PROD"]
 
