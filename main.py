@@ -1,15 +1,15 @@
-from kivy.app import App
 from kivy.clock import Clock
+from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.uix.spinner import Spinner
+from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
-from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.graphics import Color, Rectangle
 from data.colors import *
 from kivy.uix.spinner import Spinner
@@ -17,150 +17,145 @@ from kivy.uix.dropdown import DropDown
 from data.DATA import *
 from kubernetes.azure_client import AzureClient
 
-
 class ColoredBoxLayout(BoxLayout):
     def __init__(self, color, **kwargs):
         super(ColoredBoxLayout, self).__init__(**kwargs)
         with self.canvas.before:
-            Color(*color)  # Set the background color
+            Color(*color)
             self.rect = Rectangle(size=self.size, pos=self.pos)
-
         self.bind(size=self._update_rect, pos=self._update_rect)
-
     def _update_rect(self, instance, value):
-        self.rect.size = self.size
-        self.rect.pos = self.pos
-
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
 
 class ColoredSpinner(Spinner):
-    def __init__(self, default_text, default_color, selected_color, **kwargs):
+    def __init__(self, default_text, values, default_color, selected_color, **kwargs):
         super(ColoredSpinner, self).__init__(**kwargs)
-
-        self.default_text = default_text
+        self.text = default_text
+        self.default_text = default_text  # Store default text for comparison
+        self.values = values
         self.default_color = default_color
         self.selected_color = selected_color
-
-        # Set initial states
-        self.background_color = self.default_color
-        self.text = self.default_text
-
-        # Bind events to change color
-        self.bind(text=self.on_text_change)
-        self.bind(on_drop_down=self.on_drop_down)
-
-    def on_drop_down(self, spinner, dropdown):
-        # Logic for dropdown behavior
-        if isinstance(dropdown, DropDown):
-            dropdown.canvas.before.clear()
-            with dropdown.canvas.before:
-                Color(*self.background_color)
-                self.rect = Rectangle(size=dropdown.size, pos=dropdown.pos)
-            dropdown.bind(pos=self._update_rect, size=self._update_rect)
-
-    def on_text_change(self, spinner, text):
-        """Change color based on selected text."""
-        if text != self.default_text:  # Use default_text for conditions
-            self.background_color = self.selected_color  # Change to selected color
-        else:
-            self.background_color = self.default_color  # Revert to default color
-
-    def _update_rect(self, instance, value):
-        self.rect.size = self.size
-        self.rect.pos = self.pos
-
-
-class KubernetesInterface(GridLayout):
+        self.bind(text=self._on_text)
+        self.background_color = default_color
+        self.dropdown_cls = type('CustomDropDown', (DropDown,), {'max_height': 200})
+    def _on_text(self, instance, value):
+        self.background_color = self.selected_color if value != self.default_text else self.default_color
+        
+class KubernetesInterface(BoxLayout):
     def __init__(self, **kwargs):
         super(KubernetesInterface, self).__init__(**kwargs)
-        self.cols = 3
+        self.orientation = 'vertical'
         self.azure_client = AzureClient()
         self.selected_subscription = None
-
-        self.left_column = ColoredBoxLayout(color=DARK_GRAY, orientation='vertical')
-        self.second_column = ColoredBoxLayout(color=LIGHT_GRAY, orientation='vertical')
-        self.third_column = ColoredBoxLayout(color=DARK_BLUE, orientation='vertical')
-        
-        self.add_widget(self.left_column)
-        self.add_widget(self.second_column)
-        self.add_widget(self.third_column)
-
-        # Progress Bar
-        self.progress_bar = ProgressBar(max=100, size_hint_y=None, height=20)
-        self.add_widget(self.progress_bar)
-
-        # Store last selection values
         self.last_selection = (None, None, None)
-        # Progress bar animation settings
-        self.progress_update_interval = 0.5  # Seconds between updates
-        self.progress_schedule = None  # Store Clock schedule
+        self.progress_update_interval = 0.5
+        self.progress_schedule = None
+        self.progress_bar = ProgressBar(max=100, size_hint_y=None, height=20)
+        self.setup_ui()
 
-        self.setup_left_column()
-        self.setup_second_column()
-        self.setup_third_column()
+    def setup_ui(self):
+        # Ribbon (two rows of spinners + merge button)
+        self.ribbon = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        with self.ribbon.canvas.before:
+            Color(*LIGHT_GRAY)
+            self.ribbon.rect = Rectangle(size=self.ribbon.size, pos=self.ribbon.pos)
+            Color(*SHADOW_GRAY)
+            self.ribbon.shadow = Rectangle(size=(self.ribbon.size[0], self.ribbon.size[1]+5), pos=(self.ribbon.pos[0], self.ribbon.pos[1]-5))
+        self.ribbon.bind(size=self._update_ribbon_rect, pos=self._update_ribbon_rect)
 
-    def setup_left_column(self):
-        # Dropdowns
-        self.environment_spinner    = ColoredSpinner(default_text=DEFAULT_TEXT_ENVIRONMENT_DROPDOWN,    values=ENVIRONMENTS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
-        self.region_spinner         = ColoredSpinner(default_text=DEFAULT_TEXT_REGION_DROPDOWN,         values=REGIONS,     default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
-        self.subscription_spinner   = ColoredSpinner(default_text=DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN,   values=[],          default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
-        self.resource_group_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN, values=[],          default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
-        self.cluster_spinner        = ColoredSpinner(default_text=DEFAULT_TEXT_CLUSTER_DROPDOWN,        values=[],          default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_y=None, height=40)
-        self.namespace_spinner      = ColoredSpinner(default_text=DEFAULT_TEXT_NAMESPACE_DROPDOWN,      values=[],          default_color=DARK_BLUE, selected_color=DARK_BLUE,               size_hint_y=None, height=40)
+        # Row 1: Region, Environment, Subscription
+        row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+        self.region_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_REGION_DROPDOWN, values=REGIONS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
+        self.environment_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_ENVIRONMENT_DROPDOWN, values=ENVIRONMENTS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
+        self.subscription_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
+        row1.add_widget(self.region_spinner)
+        row1.add_widget(self.environment_spinner)
+        row1.add_widget(self.subscription_spinner)
 
-        # Bind selection changes
+        # Row 2: Resource Group, Cluster, Namespace, Merge Button
+        row2 = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+        self.resource_group_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
+        self.cluster_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_CLUSTER_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
+        self.namespace_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_NAMESPACE_DROPDOWN, values=[], default_color=DARK_BLUE, selected_color=DARK_BLUE, size_hint_x=0.33, height=40)
+        self.merge_button = Button(text='Merge', disabled=True, size_hint=(None, None), width=100, height=40)
+        row2.add_widget(self.resource_group_spinner)
+        row2.add_widget(self.cluster_spinner)
+        row2.add_widget(self.namespace_spinner)
+        row2.add_widget(self.merge_button)
+
+        self.ribbon.add_widget(row1)
+        self.ribbon.add_widget(row2)
+
+        # Bind spinner selections
         self.region_spinner.bind(text=self.region_spinner_selection_callback)
         self.environment_spinner.bind(text=self.environment_spinner_selection_callback)
         self.subscription_spinner.bind(text=self.subscription_spinner_selection_callback)
         self.resource_group_spinner.bind(text=self.resource_group_spinner_selection_callback)
         self.cluster_spinner.bind(text=self.cluster_spinner_selection_callback)
         self.namespace_spinner.bind(text=self.namespace_spinner_selection_callback)
-
-        # Add dropdowns
-        self.left_column.add_widget(self.region_spinner)
-        self.left_column.add_widget(self.environment_spinner)
-        self.left_column.add_widget(self.subscription_spinner)
-        self.left_column.add_widget(self.resource_group_spinner)
-        self.left_column.add_widget(self.cluster_spinner)
-        self.left_column.add_widget(self.namespace_spinner)
-
-        # Merge Button
-        self.merge_button = Button(text='Merge', disabled=True, size_hint_y=None, height=40)
         self.merge_button.bind(on_press=self.merge_button_callback)
-        self.left_column.add_widget(self.merge_button)
 
-        # Merge Command Output Text Box
-        self.merge_output_text = TextInput(multiline=True, readonly=True, size_hint_y=None, height=120)
-        self.left_column.add_widget(self.merge_output_text)
+        # Tabbed content area
+        self.tab_panel = TabbedPanel(do_default_tab=False, tab_height=40, background_color=DARK_GRAY)
+        
+        # Pods Tab
+        pods_tab = TabbedPanelItem(text='Pods')
+        pods_content = BoxLayout(orientation='vertical')
+        self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40, disabled=True)
+        self.get_pods_button.bind(on_press=self.get_pods_button_callback)
+        pods_content.add_widget(self.get_pods_button)
+        
+        self.pods_container = ScrollView(size_hint_y=0.5)
+        self.pods_grid = GridLayout(cols=1, size_hint_y=None)
+        self.pods_grid.bind(minimum_height=self.pods_grid.setter('height'))
+        self.pods_container.add_widget(self.pods_grid)
+        pods_content.add_widget(self.pods_container)
+        
+        logs_layout = BoxLayout(orientation='horizontal', size_hint_y=0.4)
+        self.logs_output = TextInput(multiline=True, readonly=True, size_hint_x=0.7)
+        self.fetch_logs_button = Button(text='Fetch Logs', size_hint=(0.3, None), height=40, disabled=True)
+        self.fetch_logs_button.bind(on_press=self.fetch_logs_button_callback)
+        logs_layout.add_widget(self.logs_output)
+        logs_layout.add_widget(self.fetch_logs_button)
+        pods_content.add_widget(logs_layout)
+        
+        pods_tab.content = pods_content
+        self.tab_panel.add_widget(pods_tab)
 
-    def setup_second_column(self):
-        # Merge Success Tracking
+        # Merge Tab
+        merge_tab = TabbedPanelItem(text='Merge')
+        merge_content = BoxLayout(orientation='vertical')
+        self.merge_output_text = TextInput(multiline=True, readonly=True, size_hint_y=1)
+        merge_content.add_widget(self.merge_output_text)
+        merge_tab.content = merge_content
+        self.tab_panel.add_widget(merge_tab)
+
+        # Placeholder Tab
+        placeholder_tab = TabbedPanelItem(text='Future Commands')
+        placeholder_content = BoxLayout(orientation='vertical')
+        placeholder_content.add_widget(Label(text='Coming soon: Secrets, Deployments, Ingress, etc.'))
+        placeholder_tab.content = placeholder_content
+        self.tab_panel.add_widget(placeholder_tab)
+
+        # Set default tab
+        self.tab_panel.default_tab = pods_tab
+
+        # Add ribbon and tabs to root
+        self.add_widget(self.ribbon)
+        self.add_widget(self.tab_panel)
+
+        # Merge success tracking
         self.merge_successful = False
         self.last_merged_subscription = None
         self.last_merged_resource_group = None
         self.last_merged_cluster = None
 
-        # Get Pods Button
-        self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40)
-        self.get_pods_button.bind(on_press=self.get_pods_button_callback)
-        self.get_pods_button.disabled = True
-        self.second_column.add_widget(self.get_pods_button)
-
-        # Container for Pods
-        self.pods_container = ScrollView(size_hint=(1, 1))
-        self.pods_grid = GridLayout(cols=1, size_hint_y=None)
-        self.pods_grid.bind(minimum_height=self.pods_grid.setter('height'))
-        self.pods_container.add_widget(self.pods_grid)
-        self.second_column.add_widget(self.pods_container)
-
-        # Fetch Logs Button
-        self.fetch_logs_button = Button(text='Fetch Logs', size_hint_y=None, height=40, disabled=True)
-        self.fetch_logs_button.bind(on_press=self.fetch_logs_button_callback)
-        self.second_column.add_widget(self.fetch_logs_button)
-
-    def setup_third_column(self):
-        # New TextInput for Log Output
-        self.logs_output = TextInput(multiline=True, readonly=True)
-        self.third_column.add_widget(self.logs_output)
+    def _update_ribbon_rect(self, instance, value):
+        self.ribbon.rect.pos = instance.pos
+        self.ribbon.rect.size = instance.size
+        self.ribbon.shadow.pos = (instance.pos[0], instance.pos[1]-5)
+        self.ribbon.shadow.size = (instance.size[0], instance.size[1]+5)
 
     def region_spinner_selection_callback(self, spinner, text):
         """Update the subscription spinner based on selected region."""
@@ -174,7 +169,6 @@ class KubernetesInterface(GridLayout):
     def update_subscription_spinner(self):
         region_selected = self.region_spinner.text
         environment_selected = self.environment_spinner.text
-
         if region_selected != DEFAULT_TEXT_REGION_DROPDOWN and environment_selected != DEFAULT_TEXT_ENVIRONMENT_DROPDOWN:
             # Filter subscriptions based on selected region and environment
             filtered_subscriptions = [
@@ -194,7 +188,6 @@ class KubernetesInterface(GridLayout):
         """Update the namespace spinner based on the selected environment."""
         environment_selected = self.environment_spinner.text
         current_namespace = self.namespace_spinner.text
-
         if environment_selected == DEFAULT_TEXT_ENVIRONMENT_DROPDOWN:
             self.namespace_spinner.values = []
             self.namespace_spinner.text = DEFAULT_TEXT_NAMESPACE_DROPDOWN
@@ -355,7 +348,6 @@ class KubernetesInterface(GridLayout):
 class KubernetesApp(App):
     def build(self):
         return KubernetesInterface()
-
 
 if __name__ == '__main__':
     KubernetesApp().run()
