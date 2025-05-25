@@ -32,7 +32,7 @@ class ColoredSpinner(Spinner):
     def __init__(self, default_text, values, default_color, selected_color, **kwargs):
         super(ColoredSpinner, self).__init__(**kwargs)
         self.text = default_text
-        self.default_text = default_text  # Store default text for comparison
+        self.default_text = default_text
         self.values = values
         self.default_color = default_color
         self.selected_color = selected_color
@@ -41,8 +41,53 @@ class ColoredSpinner(Spinner):
         self.dropdown_cls = type('CustomDropDown', (DropDown,), {'max_height': 200})
     def _on_text(self, instance, value):
         self.background_color = self.selected_color if value != self.default_text else self.default_color
+
+class Ribbon(BoxLayout):
+    def __init__(self, spinners, merge_button, spinner_width=0.8, button_width=0.2, **kwargs):
+        super(Ribbon, self).__init__(**kwargs)
+        self.orientation = 'horizontal'
+        self.size_hint_y = 0.12  # 12% of window height
+        with self.canvas.before:
+            Color(*LIGHT_GRAY)
+            self.rect = Rectangle(size=self.size, pos=self.pos)
+            Color(*SHADOW_GRAY)
+            self.shadow = Rectangle(size=(self.size[0], self.size[1]+5), pos=(self.pos[0], self.pos[1]-5))
+        self.bind(size=self._update_rect, pos=self._update_rect)
+
+        # Spinner component
+        spinner_layout = BoxLayout(orientation='vertical', size_hint_x=spinner_width)
+        row1 = BoxLayout(orientation='horizontal', size_hint_y=0.5)
+        row2 = BoxLayout(orientation='horizontal', size_hint_y=0.5)
         
+        # Add spinners (3 per row)
+        for i, spinner in enumerate(spinners[:3]):  # Region, Environment, Subscription
+            spinner.size_hint_x = 0.333
+            row1.add_widget(spinner)
+        for i, spinner in enumerate(spinners[3:]):  # Resource Group, Cluster, Namespace
+            spinner.size_hint_x = 0.333
+            row2.add_widget(spinner)
+        
+        spinner_layout.add_widget(row1)
+        spinner_layout.add_widget(row2)
+
+        # Button component
+        button_layout = BoxLayout(orientation='vertical', size_hint_x=button_width)
+        merge_button.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
+        button_layout.add_widget(merge_button)
+
+        self.add_widget(spinner_layout)
+        self.add_widget(button_layout)
+
+    def _update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
+        self.shadow.pos = (instance.pos[0], instance.pos[1]-5)
+        self.shadow.size = (instance.size[0], instance.size[1]+5)
+
 class KubernetesInterface(BoxLayout):
+    SPINNER_WIDTH = 0.8
+    BUTTON_WIDTH = 0.2
+
     def __init__(self, **kwargs):
         super(KubernetesInterface, self).__init__(**kwargs)
         self.orientation = 'vertical'
@@ -55,37 +100,14 @@ class KubernetesInterface(BoxLayout):
         self.setup_ui()
 
     def setup_ui(self):
-        # Ribbon (two rows of spinners + merge button)
-        self.ribbon = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
-        with self.ribbon.canvas.before:
-            Color(*LIGHT_GRAY)
-            self.ribbon.rect = Rectangle(size=self.ribbon.size, pos=self.ribbon.pos)
-            Color(*SHADOW_GRAY)
-            self.ribbon.shadow = Rectangle(size=(self.ribbon.size[0], self.ribbon.size[1]+5), pos=(self.ribbon.pos[0], self.ribbon.pos[1]-5))
-        self.ribbon.bind(size=self._update_ribbon_rect, pos=self._update_ribbon_rect)
-
-        # Row 1: Region, Environment, Subscription
-        row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-        self.region_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_REGION_DROPDOWN, values=REGIONS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
-        self.environment_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_ENVIRONMENT_DROPDOWN, values=ENVIRONMENTS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
-        self.subscription_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
-        row1.add_widget(self.region_spinner)
-        row1.add_widget(self.environment_spinner)
-        row1.add_widget(self.subscription_spinner)
-
-        # Row 2: Resource Group, Cluster, Namespace, Merge Button
-        row2 = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-        self.resource_group_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
-        self.cluster_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_CLUSTER_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, size_hint_x=0.33, height=40)
-        self.namespace_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_NAMESPACE_DROPDOWN, values=[], default_color=DARK_BLUE, selected_color=DARK_BLUE, size_hint_x=0.33, height=40)
-        self.merge_button = Button(text='Merge', disabled=True, size_hint=(None, None), width=100, height=40)
-        row2.add_widget(self.resource_group_spinner)
-        row2.add_widget(self.cluster_spinner)
-        row2.add_widget(self.namespace_spinner)
-        row2.add_widget(self.merge_button)
-
-        self.ribbon.add_widget(row1)
-        self.ribbon.add_widget(row2)
+        # Create spinners and merge button
+        self.region_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_REGION_DROPDOWN, values=REGIONS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.environment_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_ENVIRONMENT_DROPDOWN, values=ENVIRONMENTS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.subscription_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.resource_group_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.cluster_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_CLUSTER_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.namespace_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_NAMESPACE_DROPDOWN, values=[], default_color=DARK_BLUE, selected_color=DARK_BLUE, height=40)
+        self.merge_button = Button(text='Merge', disabled=True)
 
         # Bind spinner selections
         self.region_spinner.bind(text=self.region_spinner_selection_callback)
@@ -95,6 +117,18 @@ class KubernetesInterface(BoxLayout):
         self.cluster_spinner.bind(text=self.cluster_spinner_selection_callback)
         self.namespace_spinner.bind(text=self.namespace_spinner_selection_callback)
         self.merge_button.bind(on_press=self.merge_button_callback)
+
+        # Create ribbon
+        spinners = [
+            self.region_spinner,
+            self.environment_spinner,
+            self.subscription_spinner,
+            self.resource_group_spinner,
+            self.cluster_spinner,
+            self.namespace_spinner
+        ]
+        self.ribbon = Ribbon(spinners, self.merge_button, spinner_width=self.SPINNER_WIDTH, button_width=self.BUTTON_WIDTH)
+        self.add_widget(self.ribbon)
 
         # Tabbed content area
         self.tab_panel = TabbedPanel(do_default_tab=False, tab_height=40, background_color=DARK_GRAY)
@@ -141,8 +175,7 @@ class KubernetesInterface(BoxLayout):
         # Set default tab
         self.tab_panel.default_tab = pods_tab
 
-        # Add ribbon and tabs to root
-        self.add_widget(self.ribbon)
+        # Add tabs to root
         self.add_widget(self.tab_panel)
 
         # Merge success tracking
@@ -150,12 +183,6 @@ class KubernetesInterface(BoxLayout):
         self.last_merged_subscription = None
         self.last_merged_resource_group = None
         self.last_merged_cluster = None
-
-    def _update_ribbon_rect(self, instance, value):
-        self.ribbon.rect.pos = instance.pos
-        self.ribbon.rect.size = instance.size
-        self.ribbon.shadow.pos = (instance.pos[0], instance.pos[1]-5)
-        self.ribbon.shadow.size = (instance.size[0], instance.size[1]+5)
 
     def region_spinner_selection_callback(self, spinner, text):
         """Update the subscription spinner based on selected region."""
