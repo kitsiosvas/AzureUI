@@ -63,7 +63,8 @@ class KubernetesInterface(BoxLayout):
         self.add_widget(self.ribbon)
 
         # Tabbed content area
-        self.tab_panel = TabbedPanel(do_default_tab=False, tab_height=40, background_color=DARK_GRAY)
+        from kivy.core.window import Window
+        self.tab_panel = TabbedPanel(do_default_tab=False, tab_width=Window.width*0.2, tab_height=Window.height * 0.08, background_color=DARK_GRAY)
         
         # Pods Tab
         pods_tab = TabbedPanelItem(text='Pods')
