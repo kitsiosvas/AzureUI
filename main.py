@@ -1,4 +1,5 @@
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
@@ -89,6 +90,9 @@ class KubernetesInterface(GridLayout):
 
         # Store last selection values
         self.last_selection = (None, None, None)
+        # Progress bar animation settings
+        self.progress_update_interval = 0.5  # Seconds between updates
+        self.progress_schedule = None  # Store Clock schedule
 
         self.setup_left_column()
         self.setup_second_column()
@@ -118,7 +122,6 @@ class KubernetesInterface(GridLayout):
         self.left_column.add_widget(self.resource_group_spinner)
         self.left_column.add_widget(self.cluster_spinner)
         self.left_column.add_widget(self.namespace_spinner)
-
 
         # Merge Button
         self.merge_button = Button(text='Merge', disabled=True, size_hint_y=None, height=40)
@@ -255,23 +258,28 @@ class KubernetesInterface(GridLayout):
         ):
             self.merge_button.disabled = True
 
-    def show_progress_popup(self, title):
-        """Show progress popup."""
+    def update_progress(self, dt):
+        """Update progress bar value for animation."""
+        self.progress_bar.value = (self.progress_bar.value + 5) % 100
+
+    def show_progress_popup(self, title, message):
+        """Show progress popup with custom message and start animation."""
         self.progress_bar.value = 0
         self.popup = Popup(title=title,
-                           content=Label(text="Please wait..."),
+                           content=Label(text=message),
                            size_hint=(None, None), size=(400, 200))
         self.popup.open()
+        if self.progress_schedule:
+            self.progress_schedule.cancel()
+        self.progress_schedule = Clock.schedule_interval(self.update_progress, self.progress_update_interval)
 
     def merge_button_callback(self, instance):
         """Execute the merge command using AzureClient."""
         subscription = self.subscription_spinner.text
         resource_group = self.resource_group_spinner.text
         cluster = self.cluster_spinner.text
-        self.show_progress_popup("Executing")
+        self.show_progress_popup("Executing", "Merging cluster...")
         self.azure_client.execute_merge(subscription, resource_group, cluster, self.display_merge_result)
-
-        # Store the current selection as the last merged values
         self.last_merged_subscription = subscription
         self.last_merged_resource_group = resource_group
         self.last_merged_cluster = cluster
@@ -285,13 +293,17 @@ class KubernetesInterface(GridLayout):
         """Output the command result to the text box."""
         self.merge_output_text.text = output
         self.merge_successful = "error" not in output.lower()
-        self.check_get_pods_button_state()
+        if self.progress_schedule:
+            self.progress_schedule.cancel()
         self.popup.dismiss()
+        self.check_get_pods_button_state()
 
     def display_get_pods_result(self, output):
         """Update pods based on the command result."""
         self.pods_grid.clear_widgets()
         pods_output = output.strip()
+        if self.progress_schedule:
+            self.progress_schedule.cancel()
         if pods_output:
             pods_lines = pods_output.split('\n')[1:]
             for line in pods_lines:
@@ -310,7 +322,7 @@ class KubernetesInterface(GridLayout):
     def get_pods_button_callback(self, instance):
         """Get pods using AzureClient."""
         namespace = self.namespace_spinner.text
-        self.show_progress_popup("Getting Pods")
+        self.show_progress_popup("Getting Pods", "Fetching pods...")
         self.azure_client.get_pods(namespace, callback=self.display_get_pods_result)
 
     def check_get_logs_button_state(self):
@@ -330,12 +342,14 @@ class KubernetesInterface(GridLayout):
                 break
         namespace = self.namespace_spinner.text
         if selected_pod:
-            self.show_progress_popup("Fetching Logs")
+            self.show_progress_popup("Fetching Logs", "Fetching logs...")
             self.azure_client.get_logs(selected_pod, namespace, self.display_get_logs_result)
 
     def display_get_logs_result(self, output):
         """Update logs display based on the command result."""
         self.logs_output.text = output
+        if self.progress_schedule:
+            self.progress_schedule.cancel()
         self.popup.dismiss()
 
 class KubernetesApp(App):
