@@ -229,8 +229,7 @@ class KubernetesInterface(BoxLayout):
         resource_group = self.resource_group_spinner.text
         cluster = self.cluster_spinner.text
         self.show_progress_popup("Executing", "Merging cluster...")
-        output, success = self.azure_client.execute_merge(subscription, resource_group, cluster)
-        self.display_merge_result(output, success)
+        self.azure_client.execute_merge(subscription, resource_group, cluster, self.display_merge_result)
         self.last_merged_subscription = subscription
         self.last_merged_resource_group = resource_group
         self.last_merged_cluster = cluster

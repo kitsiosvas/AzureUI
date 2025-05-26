@@ -17,26 +17,14 @@ class AzureClient:
         # Call the provided callback function to process the output
         Clock.schedule_once(lambda dt: callback(output), 0)
 
-    def execute_merge(self, subscription, resource_group, cluster_name):
-        """Execute the merge command and return output and success status."""
-        command = [
-            "az", "aks", "get-credentials",
-            "--subscription", subscription,
-            "--resource-group", resource_group,
-            "--name", cluster_name
-        ]
-        try:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            output = result.stdout if result.returncode == 0 else result.stderr
-            success = result.returncode == 0
-            return output, success
-        except FileNotFoundError:
-            return "Error: 'az' command not found. Please install the Azure CLI.", False
+    def execute_merge(self, subscription, resource_group, cluster_name, callback):
+        """Execute the merge command asynchronously and return output and success status."""
+        command = f"az aks get-credentials --subscription {subscription} --resource-group {resource_group} --name {cluster_name}"
+        def wrapped_callback(output):
+            # Determine success based on output (e.g., "Merged" indicates success)
+            success = "Merged" in output and "error" not in output.lower()
+            callback(output, success)
+        self.execute_command(command, wrapped_callback)
 
     def get_pods(self, namespace, callback):
         """ Execute the command to get pods in the specified namespace. """
