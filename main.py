@@ -21,7 +21,7 @@ from ui.tabs.merge_tab import MergeTab
 from ui.tabs.pods_tab import PodsTab
 from ui.tabs.secrets_tab import SecretsTab
 from kivy.core.window import Window
-
+from ui.cache import CacheManager
 
 class KubernetesInterface(BoxLayout):
     SPINNER_WIDTH = 0.8
@@ -34,6 +34,7 @@ class KubernetesInterface(BoxLayout):
         self.selected_subscription = None
         self.last_selection = (None, None, None)
         self.progress_update_interval = 0.5
+        self.cache_manager = CacheManager()
         self.merge_successful = False
         self.setup_ui()
 
@@ -97,6 +98,8 @@ class KubernetesInterface(BoxLayout):
         self.last_merged_subscription = None
         self.last_merged_resource_group = None
         self.last_merged_cluster = None
+
+        self.load_cached_selections()
 
     def region_spinner_selection_callback(self, spinner, text):
         """Update the subscription spinner based on selected region."""
@@ -224,6 +227,15 @@ class KubernetesInterface(BoxLayout):
         self.merge_tab.merge_output_text.text = output
         self.merge_successful = success
         popup_manager.dismiss()
+        if success:
+            selections = {
+                'region': self.region_spinner.text,
+                'environment': self.environment_spinner.text,
+                'subscription': self.subscription_spinner.text,
+                'resource_group': self.resource_group_spinner.text,
+                'cluster': self.cluster_spinner.text
+            }
+            self.cache_manager.save_selections(selections)
         self.check_command_buttons_state()
 
     def check_command_buttons_state(self):
@@ -234,6 +246,49 @@ class KubernetesInterface(BoxLayout):
         self.secrets_tab.get_secrets_button.disabled = not buttons_enabled
         self.deployments_tab.get_deployments_button.disabled = not buttons_enabled
         self.pods_tab.check_get_logs_button_state()
+    
+    def load_cached_selections(self):
+        """Load cached selections, set spinners, and update dependent spinners."""
+        defaults = {
+            'region': DEFAULT_TEXT_REGION_DROPDOWN,
+            'environment': DEFAULT_TEXT_ENVIRONMENT_DROPDOWN,
+            'subscription': DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN,
+            'resource_group': DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN,
+            'cluster': DEFAULT_TEXT_CLUSTER_DROPDOWN
+        }
+
+        # Populate valid resource groups and clusters from SUBSCRIPTIONS
+        resource_groups = set()
+        clusters = set()
+        for sub in SUBSCRIPTIONS:
+            for rg, cluster_list in sub.resource_groups.items():
+                resource_groups.add(rg)
+                clusters.update(cluster_list)
+
+        valid_options = {
+            'region': REGIONS,
+            'environment': ENVIRONMENTS,
+            'subscription': [sub.name for sub in SUBSCRIPTIONS],
+            'resource_group': list(resource_groups),
+            'cluster': list(clusters)
+        }
+
+        # Load cached selections
+        cached_selections = self.cache_manager.load_selections(defaults, valid_options)
+
+        # Set spinners and trigger callbacks
+        self.region_spinner.text = cached_selections['region']
+        self.region_spinner_selection_callback(self.region_spinner, cached_selections['region'])
+        self.environment_spinner.text = cached_selections['environment']
+        self.environment_spinner_selection_callback(self.environment_spinner, cached_selections['environment'])
+        self.subscription_spinner.text = cached_selections['subscription']
+        self.subscription_spinner_selection_callback(self.subscription_spinner, cached_selections['subscription'])
+        self.resource_group_spinner.text = cached_selections['resource_group']
+        self.resource_group_spinner_selection_callback(self.resource_group_spinner, cached_selections['resource_group'])
+        self.cluster_spinner.text = cached_selections['cluster']
+        self.cluster_spinner_selection_callback(self.cluster_spinner, cached_selections['cluster'])
+
+        self.check_merge_button_state()
 
 
 class KubernetesApp(App):
