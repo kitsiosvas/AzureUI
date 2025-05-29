@@ -15,6 +15,7 @@ from ui.Ribbon import Ribbon
 from data.colors import *
 from data.DATA import *
 from kubernetes.azure_client import AzureClient
+from ui.popup import PopupManager
 from ui.tabs.deployments_tab import DeploymentsTab
 from ui.tabs.merge_tab import MergeTab
 from ui.tabs.pods_tab import PodsTab
@@ -27,15 +28,13 @@ class KubernetesInterface(BoxLayout):
     BUTTON_WIDTH = 0.2
 
     def __init__(self, **kwargs):
-        super(KubernetesInterface, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.orientation = 'vertical'
         self.azure_client = AzureClient()
         self.selected_subscription = None
         self.last_selection = (None, None, None)
         self.progress_update_interval = 0.5
-        self.progress_schedule = None
         self.merge_successful = False
-        self.progress_bar = ProgressBar(max=100, size_hint_y=None, height=20)
         self.setup_ui()
 
     def setup_ui(self):
@@ -77,20 +76,14 @@ class KubernetesInterface(BoxLayout):
         self.pods_tab = PodsTab(
             azure_client=self.azure_client,
             namespace_spinner=self.namespace_spinner,
-            show_progress_popup=self.show_progress_popup,
-            progress_schedule=self.progress_schedule
         )
         self.secrets_tab = SecretsTab(
             azure_client=self.azure_client,
             namespace_spinner=self.namespace_spinner,
-            show_progress_popup=self.show_progress_popup,
-            progress_schedule=self.progress_schedule
         )
         self.deployments_tab = DeploymentsTab(
             azure_client=self.azure_client,
             namespace_spinner=self.namespace_spinner,
-            show_progress_popup=self.show_progress_popup,
-            progress_schedule=self.progress_schedule
         )
         self.tab_panel.add_widget(self.merge_tab)
         self.tab_panel.add_widget(self.pods_tab)
@@ -220,19 +213,17 @@ class KubernetesInterface(BoxLayout):
         subscription = self.subscription_spinner.text
         resource_group = self.resource_group_spinner.text
         cluster = self.cluster_spinner.text
-        self.show_progress_popup("Executing", "Merging cluster...")
-        self.azure_client.execute_merge(subscription, resource_group, cluster, self.display_merge_result)
+        popup_manager = PopupManager("Executing", "Merging cluster...")
+        self.azure_client.execute_merge(subscription, resource_group, cluster, lambda output, success: self.display_merge_result(output, success, popup_manager))
         self.last_merged_subscription = subscription
         self.last_merged_resource_group = resource_group
         self.last_merged_cluster = cluster
 
-    def display_merge_result(self, output, success):
+    def display_merge_result(self, output, success, popup_manager):
         """Output the command result to the text box."""
         self.merge_tab.merge_output_text.text = output
         self.merge_successful = success
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
-        self.popup.dismiss()
+        popup_manager.dismiss()
         self.check_command_buttons_state()
 
     def check_command_buttons_state(self):

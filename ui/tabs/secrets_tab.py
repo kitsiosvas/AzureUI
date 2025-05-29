@@ -5,13 +5,13 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.togglebutton import ToggleButton
 
+from ui.popup import PopupManager
+
 class SecretsTab(TabbedPanelItem):
-    def __init__(self, azure_client, namespace_spinner, show_progress_popup, progress_schedule, **kwargs):
-        super(SecretsTab, self).__init__(text='Secrets', **kwargs)
+    def __init__(self, azure_client, namespace_spinner, **kwargs):
+        super().__init__(text='Secrets', **kwargs)
         self.azure_client = azure_client
         self.namespace_spinner = namespace_spinner
-        self.show_progress_popup = show_progress_popup
-        self.progress_schedule = progress_schedule
 
         # UI
         self.content = BoxLayout(orientation='vertical')
@@ -27,15 +27,13 @@ class SecretsTab(TabbedPanelItem):
     def get_secrets_button_callback(self, instance):
         """Get secrets using AzureClient."""
         namespace = self.namespace_spinner.text
-        popup = self.show_progress_popup("Getting Secrets", "Fetching secrets...")
-        self.azure_client.get_secrets(namespace, lambda output: self.display_get_secrets_result(output, popup))
+        self.popup_manager = PopupManager("Getting Secrets", "Fetching secrets...")
+        self.azure_client.get_secrets(namespace, self.display_get_secrets_result)
 
-    def display_get_secrets_result(self, output, popup):
+    def display_get_secrets_result(self, output):
         """Update secrets based on the command result."""
         self.secrets_grid.clear_widgets()
         secrets_output = output.strip()
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
         if secrets_output:
             secrets_lines = secrets_output.split('\n')[1:]  # Skip header
             for line in secrets_lines:
@@ -43,4 +41,4 @@ class SecretsTab(TabbedPanelItem):
                     secret_name = line.split()[0]
                     radio_button = ToggleButton(text=secret_name, group='secrets', size_hint_y=None, height=40)
                     self.secrets_grid.add_widget(radio_button)
-        popup.dismiss()
+        self.popup_manager.dismiss()

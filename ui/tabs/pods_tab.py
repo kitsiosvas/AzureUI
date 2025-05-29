@@ -6,13 +6,13 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.togglebutton import ToggleButton
 
+from ui.popup import PopupManager
+
 class PodsTab(TabbedPanelItem):
-    def __init__(self, azure_client, namespace_spinner, show_progress_popup, progress_schedule, **kwargs):
-        super(PodsTab, self).__init__(text='Pods', **kwargs)
+    def __init__(self, azure_client, namespace_spinner, **kwargs):
+        super().__init__(text='Pods', **kwargs)
         self.azure_client = azure_client
         self.namespace_spinner = namespace_spinner
-        self.show_progress_popup = show_progress_popup
-        self.progress_schedule = progress_schedule
         self.last_selected_pod = None
         
         # UI
@@ -36,17 +36,15 @@ class PodsTab(TabbedPanelItem):
     def get_pods_button_callback(self, instance):
         """Get pods using AzureClient."""
         namespace = self.namespace_spinner.text
-        popup = self.show_progress_popup("Getting Pods", "Fetching pods...")
-        self.azure_client.get_pods(namespace, lambda output: self.display_get_pods_result(output, popup))
+        self.popup_manager = PopupManager("Getting Pods", "Fetching pods...")
+        self.azure_client.get_pods(namespace, self.display_get_pods_result)
 
-    def display_get_pods_result(self, output, popup):
+    def display_get_pods_result(self, output):
         """Update pods based on the command result."""
         self.pods_grid.clear_widgets()
         self.last_selected_pod = None
         self.fetch_logs_button.disabled = True
         pods_output = output.strip()
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
         if pods_output:
             pods_lines = pods_output.split('\n')[1:]  # Skip header
             for line in pods_lines:
@@ -60,7 +58,7 @@ class PodsTab(TabbedPanelItem):
                     )
                     radio_button.bind(on_press=self.pod_toggle_callback)
                     self.pods_grid.add_widget(radio_button)
-        popup.dismiss()
+        self.popup_manager.dismiss()
 
     def pod_toggle_callback(self, instance):
         """Handle pod selection."""
@@ -74,12 +72,10 @@ class PodsTab(TabbedPanelItem):
     def fetch_logs_button_callback(self, instance):
         """Fetch logs for the selected pod."""
         namespace = self.namespace_spinner.text
-        popup = self.show_progress_popup("Getting Logs", "Fetching logs...")
-        self.azure_client.get_logs(self.last_selected_pod, namespace, lambda output: self.display_get_logs_result(output, popup))
+        self.popup_manager = PopupManager("Getting Logs", "Fetching logs...")
+        self.azure_client.get_logs(self.last_selected_pod, namespace, self.display_get_logs_result)
 
-    def display_get_logs_result(self, output, popup):
+    def display_get_logs_result(self, output):
         """Update the logs based on the command result."""
         self.logs_output.text = output
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
-        popup.dismiss()
+        self.popup_manager.dismiss()

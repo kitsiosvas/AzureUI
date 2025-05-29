@@ -5,13 +5,13 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.togglebutton import ToggleButton
 
+from ui.popup import PopupManager
+
 class DeploymentsTab(TabbedPanelItem):
-    def __init__(self, azure_client, namespace_spinner, show_progress_popup, progress_schedule, **kwargs):
-        super(DeploymentsTab, self).__init__(text='Deployments', **kwargs)
+    def __init__(self, azure_client, namespace_spinner, **kwargs):
+        super().__init__(text='Deployments', **kwargs)
         self.azure_client = azure_client
         self.namespace_spinner = namespace_spinner
-        self.show_progress_popup = show_progress_popup
-        self.progress_schedule = progress_schedule
 
         # UI
         self.content = BoxLayout(orientation='vertical')
@@ -27,15 +27,13 @@ class DeploymentsTab(TabbedPanelItem):
     def get_deployments_button_callback(self, instance):
         """Get deployments using AzureClient."""
         namespace = self.namespace_spinner.text
-        popup = self.show_progress_popup("Getting Deployments", "Fetching deployments...")
-        self.azure_client.get_deployments(namespace, lambda output: self.display_get_deployments_result(output, popup))
+        self.popup_manager = PopupManager("Getting Deployments", "Fetching deployments...")
+        self.azure_client.get_deployments(namespace, self.display_get_deployments_result)
 
-    def display_get_deployments_result(self, output, popup):
+    def display_get_deployments_result(self, output):
         """Update deployments based on the command result."""
         self.deployments_grid.clear_widgets()
         deployments_output = output.strip()
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
         if deployments_output:
             deployments_lines = deployments_output.split('\n')[1:]  # Skip header
             for line in deployments_lines:
@@ -43,4 +41,4 @@ class DeploymentsTab(TabbedPanelItem):
                     deployment_name = line.split()[0]
                     radio_button = ToggleButton(text=deployment_name, group='deployments', size_hint_y=None, height=40)
                     self.deployments_grid.add_widget(radio_button)
-        popup.dismiss()
+        self.popup_manager.dismiss()
