@@ -15,6 +15,12 @@ from ui.Ribbon import Ribbon
 from data.colors import *
 from data.DATA import *
 from kubernetes.azure_client import AzureClient
+from ui.tabs.deployments_tab import DeploymentsTab
+from ui.tabs.merge_tab import MergeTab
+from ui.tabs.pods_tab import PodsTab
+from ui.tabs.secrets_tab import SecretsTab
+from kivy.core.window import Window
+
 
 class KubernetesInterface(BoxLayout):
     SPINNER_WIDTH = 0.8
@@ -28,6 +34,7 @@ class KubernetesInterface(BoxLayout):
         self.last_selection = (None, None, None)
         self.progress_update_interval = 0.5
         self.progress_schedule = None
+        self.merge_successful = False
         self.progress_bar = ProgressBar(max=100, size_hint_y=None, height=20)
         self.setup_ui()
 
@@ -63,70 +70,33 @@ class KubernetesInterface(BoxLayout):
         self.add_widget(self.ribbon)
 
         # Tabbed content area
-        from kivy.core.window import Window
         self.tab_panel = TabbedPanel(do_default_tab=False, tab_width=Window.width*0.2, tab_height=Window.height * 0.08, background_color=DARK_GRAY)
 
-        # Merge Tab
-        merge_tab = TabbedPanelItem(text='Merge')
-        merge_content = BoxLayout(orientation='vertical')
-        self.merge_output_text = TextInput(multiline=True, readonly=True, size_hint_y=1)
-        merge_content.add_widget(self.merge_output_text)
-        merge_tab.content = merge_content
-        self.tab_panel.add_widget(merge_tab)
-
-        # Pods Tab
-        pods_tab = TabbedPanelItem(text='Pods')
-        pods_content = BoxLayout(orientation='vertical')
-        self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40, disabled=True)
-        self.get_pods_button.bind(on_press=self.get_pods_button_callback)
-        pods_content.add_widget(self.get_pods_button)
-        self.pods_container = ScrollView(size_hint_y=0.5)
-        self.pods_grid = GridLayout(cols=1, size_hint_y=None)
-        self.pods_grid.bind(minimum_height=self.pods_grid.setter('height'))
-        self.pods_container.add_widget(self.pods_grid)
-        pods_content.add_widget(self.pods_container)
-        logs_layout = BoxLayout(orientation='horizontal', size_hint_y=0.4)
-        self.logs_output = TextInput(multiline=True, readonly=True, size_hint_x=0.7)
-        self.fetch_logs_button = Button(text='Fetch Logs', size_hint=(0.3, None), height=40, disabled=True)
-        self.fetch_logs_button.bind(on_press=self.fetch_logs_button_callback)
-        logs_layout.add_widget(self.logs_output)
-        logs_layout.add_widget(self.fetch_logs_button)
-        pods_content.add_widget(logs_layout)
-        pods_tab.content = pods_content
-        self.tab_panel.add_widget(pods_tab)
-
-        # Secrets Tab
-        secrets_tab = TabbedPanelItem(text='Secrets')
-        secrets_content = BoxLayout(orientation='vertical')
-        self.get_secrets_button = Button(text='Get Secrets', size_hint_y=None, height=40, disabled=True)
-        self.get_secrets_button.bind(on_press=self.get_secrets_button_callback)
-        secrets_content.add_widget(self.get_secrets_button)
-        self.secrets_container = ScrollView(size_hint_y=0.9)
-        self.secrets_grid = GridLayout(cols=1, size_hint_y=None)
-        self.secrets_grid.bind(minimum_height=self.secrets_grid.setter('height'))
-        self.secrets_container.add_widget(self.secrets_grid)
-        secrets_content.add_widget(self.secrets_container)
-        secrets_tab.content = secrets_content
-        self.tab_panel.add_widget(secrets_tab)
-
-        # Deployments Tab
-        deployments_tab = TabbedPanelItem(text='Deployments')
-        deployments_content = BoxLayout(orientation='vertical')
-        self.get_deployments_button = Button(text='Get Deployments', size_hint_y=None, height=40, disabled=True)
-        self.get_deployments_button.bind(on_press=self.get_deployments_button_callback)
-        deployments_content.add_widget(self.get_deployments_button)
-        self.deployments_container = ScrollView(size_hint_y=0.9)
-        self.deployments_grid = GridLayout(cols=1, size_hint_y=None)
-        self.deployments_grid.bind(minimum_height=self.deployments_grid.setter('height'))
-        self.deployments_container.add_widget(self.deployments_grid)
-        deployments_content.add_widget(self.deployments_container)
-        deployments_tab.content = deployments_content
-        self.tab_panel.add_widget(deployments_tab)
-        
-        # Set default tab
-        self.tab_panel.default_tab = merge_tab
-
-        # Add tabs to root
+        # Tabs
+        self.merge_tab = MergeTab()
+        self.pods_tab = PodsTab(
+            azure_client=self.azure_client,
+            namespace_spinner=self.namespace_spinner,
+            show_progress_popup=self.show_progress_popup,
+            progress_schedule=self.progress_schedule
+        )
+        self.secrets_tab = SecretsTab(
+            azure_client=self.azure_client,
+            namespace_spinner=self.namespace_spinner,
+            show_progress_popup=self.show_progress_popup,
+            progress_schedule=self.progress_schedule
+        )
+        self.deployments_tab = DeploymentsTab(
+            azure_client=self.azure_client,
+            namespace_spinner=self.namespace_spinner,
+            show_progress_popup=self.show_progress_popup,
+            progress_schedule=self.progress_schedule
+        )
+        self.tab_panel.add_widget(self.merge_tab)
+        self.tab_panel.add_widget(self.pods_tab)
+        self.tab_panel.add_widget(self.secrets_tab)
+        self.tab_panel.add_widget(self.deployments_tab)
+        self.tab_panel.default_tab = self.merge_tab
         self.add_widget(self.tab_panel)
 
         # Merge success tracking
@@ -185,7 +155,7 @@ class KubernetesInterface(BoxLayout):
             self.resource_group_spinner.text = DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN
             self.reset_merge_state()
         self.check_merge_button_state()
-        self.check_get_pods_button_state()
+        self.check_command_buttons_state()
 
     def resource_group_spinner_selection_callback(self, spinner, text):
         """Update the cluster spinner based on the selected resource group."""
@@ -194,18 +164,18 @@ class KubernetesInterface(BoxLayout):
             self.cluster_spinner.text = DEFAULT_TEXT_CLUSTER_DROPDOWN
             self.reset_merge_state()
         self.check_merge_button_state()
-        self.check_get_pods_button_state()
+        self.check_command_buttons_state()
 
     def cluster_spinner_selection_callback(self, spinner, text):
         """Reset the merge state when the cluster selection changes."""
         self.reset_merge_state()
         self.check_merge_button_state()
-        self.check_get_pods_button_state()
+        self.check_command_buttons_state()
 
     def namespace_spinner_selection_callback(self, spinner, text):
         """Reset the merge state when the namespace selection changes."""
         self.check_merge_button_state()
-        self.check_get_pods_button_state()
+        self.check_command_buttons_state()
 
     def reset_merge_state(self):
         """Reset the merge_successful state if any dropdown selection changes."""
@@ -243,6 +213,7 @@ class KubernetesInterface(BoxLayout):
         if self.progress_schedule:
             self.progress_schedule.cancel()
         self.progress_schedule = Clock.schedule_interval(self.update_progress, self.progress_update_interval)
+        return self.popup
 
     def merge_button_callback(self, instance):
         """Execute the merge command using AzureClient."""
@@ -257,117 +228,22 @@ class KubernetesInterface(BoxLayout):
 
     def display_merge_result(self, output, success):
         """Output the command result to the text box."""
-        self.merge_output_text.text = output
+        self.merge_tab.merge_output_text.text = output
         self.merge_successful = success
         if self.progress_schedule:
             self.progress_schedule.cancel()
         self.popup.dismiss()
-        self.check_get_pods_button_state()
+        self.check_command_buttons_state()
 
-    def check_get_pods_button_state(self):
+    def check_command_buttons_state(self):
         """Enable/disable command buttons if namespace is selected and merge was successful."""
         namespace_selected = self.namespace_spinner.text != DEFAULT_TEXT_NAMESPACE_DROPDOWN
         buttons_enabled = namespace_selected and self.merge_successful
-        self.get_pods_button.disabled = not buttons_enabled
-        self.get_secrets_button.disabled = not buttons_enabled
-        self.get_deployments_button.disabled = not buttons_enabled
-        self.check_get_logs_button_state()
+        self.pods_tab.get_pods_button.disabled = not buttons_enabled
+        self.secrets_tab.get_secrets_button.disabled = not buttons_enabled
+        self.deployments_tab.get_deployments_button.disabled = not buttons_enabled
+        self.pods_tab.check_get_logs_button_state()
 
-    def display_get_pods_result(self, output):
-        """Update pods based on the command result."""
-        self.pods_grid.clear_widgets()
-        pods_output = output.strip()
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
-        if pods_output:
-            pods_lines = pods_output.split('\n')[1:]
-            for line in pods_lines:
-                if line:
-                    pod_name = line.split()[0]
-                    radio_button = ToggleButton(text=pod_name, group='pods', size_hint_y=None, height=40)
-                    radio_button.bind(on_press=self.selected_pod_button_callback)
-                    self.pods_grid.add_widget(radio_button)
-        self.popup.dismiss()
-        self.check_get_logs_button_state()
-
-    def selected_pod_button_callback(self, toggle_button):
-        """Handle the state change of the pod selection toggle button."""
-        self.check_get_logs_button_state()
-
-    def get_pods_button_callback(self, instance):
-        """Get pods using AzureClient."""
-        namespace = self.namespace_spinner.text
-        self.show_progress_popup("Getting Pods", "Fetching pods...")
-        self.azure_client.get_pods(namespace, callback=self.display_get_pods_result)
-
-    def check_get_logs_button_state(self):
-        """Enable or disable the Fetch Logs button based on the selected pod."""
-        self.fetch_logs_button.disabled = True
-        for widget in self.pods_grid.children:
-            if isinstance(widget, ToggleButton) and widget.state == 'down':
-                self.fetch_logs_button.disabled = False
-                break
-
-    def fetch_logs_button_callback(self, instance):
-        """Fetch logs using AzureClient."""
-        selected_pod = None
-        for widget in self.pods_grid.children:
-            if isinstance(widget, ToggleButton) and widget.state == 'down':
-                selected_pod = widget.text
-                break
-        namespace = self.namespace_spinner.text
-        if selected_pod:
-            self.show_progress_popup("Fetching Logs", "Fetching logs...")
-            self.azure_client.get_logs(selected_pod, namespace, self.display_get_logs_result)
-
-    def display_get_logs_result(self, output):
-        """Update logs display based on the command result."""
-        self.logs_output.text = output
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
-        self.popup.dismiss()
-
-    def get_secrets_button_callback(self, instance):
-        """Get secrets using AzureClient."""
-        namespace = self.namespace_spinner.text
-        self.show_progress_popup("Getting Secrets", "Fetching secrets...")
-        self.azure_client.get_secrets(namespace, self.display_get_secrets_result)
-
-    def display_get_secrets_result(self, output):
-        """Update secrets based on the command result."""
-        self.secrets_grid.clear_widgets()
-        secrets_output = output.strip()
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
-        if secrets_output:
-            secrets_lines = secrets_output.split('\n')[1:]  # Skip header
-            for line in secrets_lines:
-                if line:
-                    secret_name = line.split()[0]
-                    radio_button = ToggleButton(text=secret_name, group='secrets', size_hint_y=None, height=40)
-                    self.secrets_grid.add_widget(radio_button)
-        self.popup.dismiss()
-
-    def get_deployments_button_callback(self, instance):
-        """Get deployments using AzureClient."""
-        namespace = self.namespace_spinner.text
-        self.show_progress_popup("Getting Deployments", "Fetching deployments...")
-        self.azure_client.get_deployments(namespace, self.display_get_deployments_result)
-
-    def display_get_deployments_result(self, output):
-        """Update deployments based on the command result."""
-        self.deployments_grid.clear_widgets()
-        deployments_output = output.strip()
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
-        if deployments_output:
-            deployments_lines = deployments_output.split('\n')[1:]  # Skip header
-            for line in deployments_lines:
-                if line:
-                    deployment_name = line.split()[0]
-                    radio_button = ToggleButton(text=deployment_name, group='deployments', size_hint_y=None, height=40)
-                    self.deployments_grid.add_widget(radio_button)
-        self.popup.dismiss()
 
 class KubernetesApp(App):
     def build(self):
