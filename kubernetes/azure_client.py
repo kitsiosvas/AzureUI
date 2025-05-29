@@ -35,3 +35,13 @@ class AzureClient:
         """ Execute the command to get logs for a specific pod in the specified namespace. """
         command = f"kubectl logs {pod} -n {namespace}"
         self.execute_command(command, callback)
+    
+    def get_secrets(self, namespace, callback):
+        """Execute the command to get secrets in the specified namespace."""
+        command = f"kubectl get secrets -n {namespace}"
+        self.execute_command(command, callback)
+
+    def get_deployments(self, namespace, callback):
+        """Execute the command to get deployments in the specified namespace."""
+        command = f"kubectl get deployments -n {namespace}"
+        self.execute_command(command, callback)
