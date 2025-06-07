@@ -3,7 +3,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.togglebutton import ToggleButton
 
 from ui.popup import PopupManager
@@ -15,23 +14,40 @@ class PodsTab(TabbedPanelItem):
         self.namespace_spinner = namespace_spinner
         self.last_selected_pod = None
         
-        # UI
-        self.content = BoxLayout(orientation='vertical')
+        # UI: Horizontal split (left 30%, right 70%)
+        self.content = BoxLayout(orientation='horizontal')
+        
+        # Left panel: Get Pods button and pod list
+        self.left_panel = BoxLayout(orientation='vertical', size_hint=(0.3, 1))
         self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40, disabled=True)
         self.get_pods_button.bind(on_press=self.get_pods_button_callback)
-        self.content.add_widget(self.get_pods_button)
-        self.pods_container = ScrollView(size_hint_y=0.5)
-        self.pods_grid = GridLayout(cols=1, size_hint_y=None)
-        self.pods_grid.bind(minimum_height=self.pods_grid.setter('height'))
-        self.pods_container.add_widget(self.pods_grid)
-        self.content.add_widget(self.pods_container)
-        logs_layout = BoxLayout(orientation='horizontal', size_hint_y=0.4)
-        self.logs_output = TextInput(multiline=True, readonly=True, size_hint_x=0.7)
-        self.fetch_logs_button = Button(text='Fetch Logs', size_hint=(0.3, None), height=40, disabled=True)
+        self.left_panel.add_widget(self.get_pods_button)
+        self.pods_container = ScrollView(size_hint=(1, 1))
+        self.pods_list = BoxLayout(orientation='vertical', size_hint_y=None, spacing=5, padding=5)
+        self.pods_list.bind(minimum_height=self.pods_list.setter('height'))
+        self.pods_container.add_widget(self.pods_list)
+        self.left_panel.add_widget(self.pods_container)
+        self.content.add_widget(self.left_panel)
+        
+        # Right panel: Command buttons (top 10%) and output (bottom 90%)
+        self.right_panel = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
+        
+        # Command buttons
+        self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.1)
+        self.fetch_logs_button = Button(text='Fetch Logs', size_hint_x=0.5, disabled=True)
         self.fetch_logs_button.bind(on_press=self.fetch_logs_button_callback)
-        logs_layout.add_widget(self.logs_output)
-        logs_layout.add_widget(self.fetch_logs_button)
-        self.content.add_widget(logs_layout)
+        self.describe_pod_button = Button(text='Describe Pod', size_hint_x=0.5, disabled=True)
+        self.describe_pod_button.bind(on_press=self.describe_pod_button_callback)
+        self.command_layout.add_widget(self.fetch_logs_button)
+        self.command_layout.add_widget(self.describe_pod_button)
+        self.right_panel.add_widget(self.command_layout)
+        
+        # Output TextInput (unchanged)
+        self.logs_output = TextInput(multiline=True, readonly=True, size_hint_y=0.9)
+        self.right_panel.add_widget(self.logs_output)
+        
+        self.content.add_widget(self.right_panel)
+        self.add_widget(self.content)
 
     def get_pods_button_callback(self, instance):
         """Get pods using AzureClient."""
@@ -41,9 +57,10 @@ class PodsTab(TabbedPanelItem):
 
     def display_get_pods_result(self, output):
         """Update pods based on the command result."""
-        self.pods_grid.clear_widgets()
+        self.pods_list.clear_widgets()
         self.last_selected_pod = None
         self.fetch_logs_button.disabled = True
+        self.describe_pod_button.disabled = True
         pods_output = output.strip()
         if pods_output:
             pods_lines = pods_output.split('\n')[1:]  # Skip header
@@ -57,7 +74,7 @@ class PodsTab(TabbedPanelItem):
                         height=40
                     )
                     radio_button.bind(on_press=self.pod_toggle_callback)
-                    self.pods_grid.add_widget(radio_button)
+                    self.pods_list.add_widget(radio_button)
         self.popup_manager.dismiss()
 
     def pod_toggle_callback(self, instance):
@@ -66,8 +83,9 @@ class PodsTab(TabbedPanelItem):
         self.check_get_logs_button_state()
 
     def check_get_logs_button_state(self):
-        """Enable/disable the Fetch Logs button based on pod selection."""
+        """Enable/disable command buttons based on pod selection."""
         self.fetch_logs_button.disabled = not bool(self.last_selected_pod)
+        self.describe_pod_button.disabled = not bool(self.last_selected_pod)
 
     def fetch_logs_button_callback(self, instance):
         """Fetch logs for the selected pod."""
@@ -79,3 +97,7 @@ class PodsTab(TabbedPanelItem):
         """Update the logs based on the command result."""
         self.logs_output.text = output
         self.popup_manager.dismiss()
+
+    def describe_pod_button_callback(self, instance):
+        """Placeholder for Describe Pod command."""
+        print("Describe Pod not implemented")
