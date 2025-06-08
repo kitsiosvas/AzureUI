@@ -52,8 +52,8 @@ class PodsTab(TabbedPanelItem):
         )
         self.filter_input.bind(on_text_validate=self.filter_output)
         self.output_layout.add_widget(self.filter_input)
-        self.logs_output = TextInput(multiline=True, readonly=True, size_hint_y=0.9)
-        self.output_layout.add_widget(self.logs_output)
+        self.command_output = TextInput(multiline=True, readonly=True, size_hint_y=0.9)
+        self.output_layout.add_widget(self.command_output)
         self.right_panel.add_widget(self.output_layout)
         
         self.content.add_widget(self.right_panel)
@@ -110,7 +110,7 @@ class PodsTab(TabbedPanelItem):
         """Update the logs based on the command result."""
         self.full_output = output
         self.filter_input.text = ""
-        self.logs_output.text = output
+        self.command_output.text = output
         self.popup_manager.dismiss()
 
     def describe_pod_button_callback(self, instance):
@@ -118,19 +118,19 @@ class PodsTab(TabbedPanelItem):
         print("Describe Pod not implemented")
         self.full_output = "Describe Pod output placeholder"
         self.filter_input.text = ""
-        self.logs_output.text = self.full_output
+        self.command_output.text = self.full_output
 
     def filter_output(self, instance):
-        """Filter logs_output based on filter_input text."""
+        """Filter command_output based on filter_input text."""
         if not self.full_output:
-            self.logs_output.text = ""
+            self.command_output.text = ""
             return
         filter_text = instance.text.lower()
         if not filter_text:
-            self.logs_output.text = self.full_output
+            self.command_output.text = self.full_output
             return
         filtered_lines = [
             line for line in self.full_output.split('\n')
             if filter_text in line.lower()
         ]
-        self.logs_output.text = '\n'.join(filtered_lines)
+        self.command_output.text = '\n'.join(filtered_lines)
