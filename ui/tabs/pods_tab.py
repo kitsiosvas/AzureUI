@@ -13,6 +13,7 @@ class PodsTab(TabbedPanelItem):
         self.azure_client = azure_client
         self.namespace_spinner = namespace_spinner
         self.last_selected_pod = None
+        self.full_output = ""  # Store unfiltered command output
         
         # UI: Horizontal split (left 30%, right 70%)
         self.content = BoxLayout(orientation='horizontal')
@@ -29,11 +30,11 @@ class PodsTab(TabbedPanelItem):
         self.left_panel.add_widget(self.pods_container)
         self.content.add_widget(self.left_panel)
         
-        # Right panel: Command buttons (top 10%) and output (bottom 90%)
+        # Right panel: Command buttons (top 15%) and output (bottom 85%)
         self.right_panel = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
         
         # Command buttons
-        self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.1)
+        self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.15)
         self.fetch_logs_button = Button(text='Fetch Logs', size_hint_x=0.5, disabled=True)
         self.fetch_logs_button.bind(on_press=self.fetch_logs_button_callback)
         self.describe_pod_button = Button(text='Describe Pod', size_hint_x=0.5, disabled=True)
@@ -42,9 +43,18 @@ class PodsTab(TabbedPanelItem):
         self.command_layout.add_widget(self.describe_pod_button)
         self.right_panel.add_widget(self.command_layout)
         
-        # Output TextInput (unchanged)
+        # Output area: Filter + TextInput
+        self.output_layout = BoxLayout(orientation='vertical', size_hint_y=0.85)
+        self.filter_input = TextInput(
+            multiline=False,
+            size_hint_y=0.1,
+            hint_text='Filter (e.g., req_id, error)'
+        )
+        self.filter_input.bind(on_text_validate=self.filter_output)
+        self.output_layout.add_widget(self.filter_input)
         self.logs_output = TextInput(multiline=True, readonly=True, size_hint_y=0.9)
-        self.right_panel.add_widget(self.logs_output)
+        self.output_layout.add_widget(self.logs_output)
+        self.right_panel.add_widget(self.output_layout)
         
         self.content.add_widget(self.right_panel)
         self.add_widget(self.content)
@@ -61,6 +71,9 @@ class PodsTab(TabbedPanelItem):
         self.last_selected_pod = None
         self.fetch_logs_button.disabled = True
         self.describe_pod_button.disabled = True
+        self.full_output = ""
+        self.logs_output.text = ""
+        self.filter_input.text = ""
         pods_output = output.strip()
         if pods_output:
             pods_lines = pods_output.split('\n')[1:]  # Skip header
@@ -95,9 +108,29 @@ class PodsTab(TabbedPanelItem):
 
     def display_get_logs_result(self, output):
         """Update the logs based on the command result."""
+        self.full_output = output
+        self.filter_input.text = ""
         self.logs_output.text = output
         self.popup_manager.dismiss()
 
     def describe_pod_button_callback(self, instance):
         """Placeholder for Describe Pod command."""
         print("Describe Pod not implemented")
+        self.full_output = "Describe Pod output placeholder"
+        self.filter_input.text = ""
+        self.logs_output.text = self.full_output
+
+    def filter_output(self, instance):
+        """Filter logs_output based on filter_input text."""
+        if not self.full_output:
+            self.logs_output.text = ""
+            return
+        filter_text = instance.text.lower()
+        if not filter_text:
+            self.logs_output.text = self.full_output
+            return
+        filtered_lines = [
+            line for line in self.full_output.split('\n')
+            if filter_text in line.lower()
+        ]
+        self.logs_output.text = '\n'.join(filtered_lines)
