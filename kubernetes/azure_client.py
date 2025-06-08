@@ -7,6 +7,8 @@ class AzureClient(EventDispatcher):
     def __init__(self):
         super().__init__()
         self.register_event_type('on_merge_output')
+        self.register_event_type('on_pods_output')
+        self.register_event_type('on_logs_output')
 
     def execute_command(self, command, event_name=None):
         """Execute a command asynchronously and dispatch event if specified."""
@@ -34,15 +36,23 @@ class AzureClient(EventDispatcher):
         """Event handler for merge output (default implementation)."""
         pass
 
-    def get_pods(self, namespace, callback):
-        """ Execute the command to get pods in the specified namespace. """
+    def get_pods(self, namespace):
+        """Execute the command to get pods in the specified namespace."""
         command = f"kubectl get pods -n {namespace}"
-        self.execute_command(command, callback)
+        self.execute_command(command, 'on_pods_output')
 
-    def get_logs(self, pod, namespace, callback):
-        """ Execute the command to get logs for a specific pod in the specified namespace. """
+    def on_pods_output(self, output):
+        """Event handler for pods output (default implementation)."""
+        pass
+
+    def get_logs(self, pod, namespace):
+        """Execute the command to get logs for a specific pod in the specified namespace."""
         command = f"kubectl logs {pod} -n {namespace}"
-        self.execute_command(command, callback)
+        self.execute_command(command, 'on_logs_output')
+
+    def on_logs_output(self, output):
+        """Event handler for logs output (default implementation)."""
+        pass
     
     def get_secrets(self, namespace, callback):
         """Execute the command to get secrets in the specified namespace."""
