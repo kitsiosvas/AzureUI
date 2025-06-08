@@ -36,6 +36,8 @@ class KubernetesInterface(BoxLayout):
         self.progress_update_interval = 0.5
         self.cache_manager = CacheManager()
         self.merge_successful = False
+        self.merge_popup_manager = None  # Store PopupManager for merge
+        self.azure_client.bind(on_merge_output=self.on_merge_output)
         self.setup_ui()
 
     def setup_ui(self):
@@ -195,32 +197,22 @@ class KubernetesInterface(BoxLayout):
         ):
             self.merge_button.disabled = True
 
-    def update_progress(self, dt):
-        """Update progress bar value for animation."""
-        self.progress_bar.value = (self.progress_bar.value + 5) % 100
-
-    def show_progress_popup(self, title, message):
-        """Show progress popup with custom message and start animation."""
-        self.progress_bar.value = 0
-        self.popup = Popup(title=title,
-                           content=Label(text=message),
-                           size_hint=(None, None), size=(400, 200))
-        self.popup.open()
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
-        self.progress_schedule = Clock.schedule_interval(self.update_progress, self.progress_update_interval)
-        return self.popup
 
     def merge_button_callback(self, instance):
         """Execute the merge command using AzureClient."""
         subscription = self.subscription_spinner.text
         resource_group = self.resource_group_spinner.text
         cluster = self.cluster_spinner.text
-        popup_manager = PopupManager("Executing", "Merging cluster...")
-        self.azure_client.execute_merge(subscription, resource_group, cluster, lambda output, success: self.display_merge_result(output, success, popup_manager))
+        self.merge_popup_manager = PopupManager("Executing", "Merging cluster...")
+        self.azure_client.execute_merge(subscription, resource_group, cluster)
         self.last_merged_subscription = subscription
         self.last_merged_resource_group = resource_group
         self.last_merged_cluster = cluster
+
+    def on_merge_output(self, instance, output, success):
+        """Handle merge output event from AzureClient."""
+        self.display_merge_result(output, success, self.merge_popup_manager)
+        self.merge_popup_manager = None
 
     def display_merge_result(self, output, success, popup_manager):
         """Output the command result to the text box."""
