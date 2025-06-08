@@ -12,6 +12,10 @@ class DeploymentsTab(TabbedPanelItem):
         super().__init__(text='Deployments', **kwargs)
         self.azure_client = azure_client
         self.namespace_spinner = namespace_spinner
+        self.deployments_popup_manager = None  # Store PopupManager for get_deployments
+
+        # Bind to AzureClient's on_deployments_output event
+        self.azure_client.bind(on_deployments_output=self.on_deployments_output)
 
         # UI
         self.content = BoxLayout(orientation='vertical')
@@ -25,10 +29,16 @@ class DeploymentsTab(TabbedPanelItem):
         self.content.add_widget(self.deployments_container)
 
     def get_deployments_button_callback(self, instance):
-        """Get deployments using AzureClient."""
+        """Fetch deployments using AzureClient."""
         namespace = self.namespace_spinner.text
-        self.popup_manager = PopupManager("Getting Deployments", "Fetching deployments...")
-        self.azure_client.get_deployments(namespace, self.display_get_deployments_result)
+        self.deployments_popup_manager = PopupManager("Getting Deployments", "Fetching deployments...")
+        self.azure_client.get_deployments(namespace)
+
+    def on_deployments_output(self, instance, output):
+        """Handle deployments output event from AzureClient."""
+        self.display_get_deployments_result(output)
+        self.deployments_popup_manager.dismiss()
+        self.deployments_popup_manager = None
 
     def display_get_deployments_result(self, output):
         """Update deployments based on the command result."""
@@ -41,4 +51,3 @@ class DeploymentsTab(TabbedPanelItem):
                     deployment_name = line.split()[0]
                     radio_button = ToggleButton(text=deployment_name, group='deployments', size_hint_y=None, height=40)
                     self.deployments_grid.add_widget(radio_button)
-        self.popup_manager.dismiss()

@@ -14,6 +14,12 @@ class PodsTab(TabbedPanelItem):
         self.namespace_spinner = namespace_spinner
         self.last_selected_pod = None
         self.full_output = ""  # Store unfiltered command output
+        self.pods_popup_manager = None  # Store PopupManager for get_pods
+        self.logs_popup_manager = None  # Store PopupManager for get_logs
+        
+        # Bind to AzureClient's events
+        self.azure_client.bind(on_pods_output=self.on_pods_output)
+        self.azure_client.bind(on_logs_output=self.on_logs_output)
         
         # UI: Horizontal split (left 30%, right 70%)
         self.content = BoxLayout(orientation='horizontal')
@@ -59,20 +65,27 @@ class PodsTab(TabbedPanelItem):
         self.content.add_widget(self.right_panel)
         self.add_widget(self.content)
 
+
     def get_pods_button_callback(self, instance):
-        """Get pods using AzureClient."""
+        """Fetch pods using AzureClient."""
         namespace = self.namespace_spinner.text
-        self.popup_manager = PopupManager("Getting Pods", "Fetching pods...")
-        self.azure_client.get_pods(namespace, self.display_get_pods_result)
+        self.pods_popup_manager = PopupManager("Getting Pods", "Fetching pods...")
+        self.azure_client.get_pods(namespace)
+
+    def on_pods_output(self, instance, output):
+        """Handle pods output event from AzureClient."""
+        self.display_get_pods_result(output)
+        self.pods_popup_manager.dismiss()
+        self.pods_popup_manager = None
 
     def display_get_pods_result(self, output):
-        """Update pods based on the command result."""
+        """Display pods based on the command result."""
         self.pods_list.clear_widgets()
         self.last_selected_pod = None
         self.fetch_logs_button.disabled = True
         self.describe_pod_button.disabled = True
         self.full_output = ""
-        self.logs_output.text = ""
+        self.command_output.text = ""
         self.filter_input.text = ""
         pods_output = output.strip()
         if pods_output:
@@ -88,7 +101,6 @@ class PodsTab(TabbedPanelItem):
                     )
                     radio_button.bind(on_press=self.pod_toggle_callback)
                     self.pods_list.add_widget(radio_button)
-        self.popup_manager.dismiss()
 
     def pod_toggle_callback(self, instance):
         """Handle pod selection."""
@@ -101,17 +113,22 @@ class PodsTab(TabbedPanelItem):
         self.describe_pod_button.disabled = not bool(self.last_selected_pod)
 
     def fetch_logs_button_callback(self, instance):
-        """Fetch logs for the selected pod."""
+        """Fetch logs for the selected pod using AzureClient."""
         namespace = self.namespace_spinner.text
-        self.popup_manager = PopupManager("Getting Logs", "Fetching logs...")
-        self.azure_client.get_logs(self.last_selected_pod, namespace, self.display_get_logs_result)
+        self.logs_popup_manager = PopupManager("Getting Logs", "Fetching logs...")
+        self.azure_client.get_logs(self.last_selected_pod, namespace)
+    
+    def on_logs_output(self, instance, output):
+        """Handle logs output event from AzureClient."""
+        self.display_get_logs_result(output)
+        self.logs_popup_manager.dismiss()
+        self.logs_popup_manager = None
 
     def display_get_logs_result(self, output):
-        """Update the logs based on the command result."""
+        """Display the logs based on the command result."""
         self.full_output = output
         self.filter_input.text = ""
         self.command_output.text = output
-        self.popup_manager.dismiss()
 
     def describe_pod_button_callback(self, instance):
         """Placeholder for Describe Pod command."""
