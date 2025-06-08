@@ -9,6 +9,8 @@ class AzureClient(EventDispatcher):
         self.register_event_type('on_merge_output')
         self.register_event_type('on_pods_output')
         self.register_event_type('on_logs_output')
+        self.register_event_type('on_secrets_output')
+        self.register_event_type('on_deployments_output')
 
     def execute_command(self, command, event_name=None):
         """Execute a command asynchronously and dispatch event if specified."""
@@ -53,13 +55,21 @@ class AzureClient(EventDispatcher):
     def on_logs_output(self, output):
         """Event handler for logs output (default implementation)."""
         pass
-    
-    def get_secrets(self, namespace, callback):
+
+    def get_secrets(self, namespace):
         """Execute the command to get secrets in the specified namespace."""
         command = f"kubectl get secrets -n {namespace}"
-        self.execute_command(command, callback)
+        self.execute_command(command, 'on_secrets_output')
 
-    def get_deployments(self, namespace, callback):
+    def on_secrets_output(self, output):
+        """Event handler for secrets output (default implementation)."""
+        pass
+
+    def get_deployments(self, namespace):
         """Execute the command to get deployments in the specified namespace."""
         command = f"kubectl get deployments -n {namespace}"
-        self.execute_command(command, callback)
+        self.execute_command(command, 'on_deployments_output')
+
+    def on_deployments_output(self, output):
+        """Event handler for deployments output (default implementation)."""
+        pass

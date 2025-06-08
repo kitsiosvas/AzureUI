@@ -12,6 +12,10 @@ class SecretsTab(TabbedPanelItem):
         super().__init__(text='Secrets', **kwargs)
         self.azure_client = azure_client
         self.namespace_spinner = namespace_spinner
+        self.secrets_popup_manager = None  # Store PopupManager for get_secrets
+
+        # Bind to AzureClient's on_secrets_output event
+        self.azure_client.bind(on_secrets_output=self.on_secrets_output)
 
         # UI
         self.content = BoxLayout(orientation='vertical')
@@ -25,10 +29,16 @@ class SecretsTab(TabbedPanelItem):
         self.content.add_widget(self.secrets_container)
 
     def get_secrets_button_callback(self, instance):
-        """Get secrets using AzureClient."""
+        """Fetch secrets using AzureClient."""
         namespace = self.namespace_spinner.text
-        self.popup_manager = PopupManager("Getting Secrets", "Fetching secrets...")
-        self.azure_client.get_secrets(namespace, self.display_get_secrets_result)
+        self.secrets_popup_manager = PopupManager("Getting Secrets", "Fetching secrets...")
+        self.azure_client.get_secrets(namespace)
+
+    def on_secrets_output(self, instance, output):
+        """Handle secrets output event from AzureClient."""
+        self.display_get_secrets_result(output)
+        self.secrets_popup_manager.dismiss()
+        self.secrets_popup_manager = None
 
     def display_get_secrets_result(self, output):
         """Update secrets based on the command result."""
@@ -41,4 +51,3 @@ class SecretsTab(TabbedPanelItem):
                     secret_name = line.split()[0]
                     radio_button = ToggleButton(text=secret_name, group='secrets', size_hint_y=None, height=40)
                     self.secrets_grid.add_widget(radio_button)
-        self.popup_manager.dismiss()

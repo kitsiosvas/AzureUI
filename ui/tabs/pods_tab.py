@@ -75,7 +75,7 @@ class PodsTab(TabbedPanelItem):
     def on_pods_output(self, instance, output):
         """Handle pods output event from AzureClient."""
         self.display_get_pods_result(output)
-        self.pods_popup_manager.delete()
+        self.pods_popup_manager.dismiss()
         self.pods_popup_manager = None
 
     def display_get_pods_result(self, output):
@@ -121,7 +121,7 @@ class PodsTab(TabbedPanelItem):
     def on_logs_output(self, instance, output):
         """Handle logs output event from AzureClient."""
         self.display_get_logs_result(output)
-        self.logs_popup_manager.delete()
+        self.logs_popup_manager.dismiss()
         self.logs_popup_manager = None
 
     def display_get_logs_result(self, output):
