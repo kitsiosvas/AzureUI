@@ -40,7 +40,7 @@ class PodsTab(TabbedPanelItem):
         self.right_panel = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
         
         # Command buttons
-        self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.15)
+        self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.10)
         self.fetch_logs_button = Button(text='Fetch Logs', size_hint_x=0.5, disabled=True)
         self.fetch_logs_button.bind(on_press=self.fetch_logs_button_callback)
         self.describe_pod_button = Button(text='Describe Pod', size_hint_x=0.5, disabled=True)
@@ -50,7 +50,7 @@ class PodsTab(TabbedPanelItem):
         self.right_panel.add_widget(self.command_layout)
         
         # Output area: Filter + TextInput
-        self.output_layout = BoxLayout(orientation='vertical', size_hint_y=0.85)
+        self.output_layout = BoxLayout(orientation='vertical', size_hint_y=0.90)
         self.filter_input = TextInput(
             multiline=False,
             size_hint_y=0.1,
