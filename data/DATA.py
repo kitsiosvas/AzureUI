@@ -1,4 +1,4 @@
-from kubernetes.entities import Subscription, Namespace
+from k8s.entities import Subscription, Namespace
 
 SUBSCRIPTIONS = [
     Subscription("sub-apac-sit", "APAC", "SIT", {
