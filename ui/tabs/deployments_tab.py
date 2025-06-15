@@ -45,9 +45,9 @@ class DeploymentsTab(TabbedPanelItem):
         self.deployments_grid.clear_widgets()
         deployments_output = output.strip()
         if deployments_output:
-            deployments_lines = deployments_output.split('\n')[1:]  # Skip header
+            deployments_lines = deployments_output.split('\n')  # SDK returns deployment names, one per line
             for line in deployments_lines:
                 if line:
-                    deployment_name = line.split()[0]
+                    deployment_name = line
                     radio_button = ToggleButton(text=deployment_name, group='deployments', size_hint_y=None, height=40)
                     self.deployments_grid.add_widget(radio_button)
