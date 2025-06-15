@@ -6,7 +6,6 @@ from ui.ColoredSpinner import ColoredSpinner
 from ui.Ribbon import Ribbon
 from data.colors import *
 from data.DATA import *
-from k8s.azure_client import AzureClient
 from ui.popup import PopupManager
 from ui.tabs.deployments_tab import DeploymentsTab
 from ui.tabs.merge_tab import MergeTab
@@ -14,6 +13,14 @@ from ui.tabs.pods_tab import PodsTab
 from ui.tabs.secrets_tab import SecretsTab
 from kivy.core.window import Window
 from ui.cache import CacheManager
+
+
+# Toggle between real and dummy AzureClient (set USE_DUMMY=True for testing)
+USE_DUMMY = True
+if USE_DUMMY:
+    from k8s.dummy_azure_client import DummyAzureClient as AzureClient
+else:
+    from k8s.azure_client import AzureClient
 
 class KubernetesInterface(BoxLayout):
     SPINNER_WIDTH = 0.8
