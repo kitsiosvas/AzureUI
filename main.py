@@ -1,4 +1,3 @@
-from kivy.clock import Clock
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -64,7 +63,6 @@ class KubernetesInterface(BoxLayout):
         self.ribbon = Ribbon(spinners, self.merge_button, spinner_width=self.SPINNER_WIDTH, button_width=self.BUTTON_WIDTH)
         self.add_widget(self.ribbon)
 
-
         # Tabbed content area
         self.tab_panel = TabbedPanel(do_default_tab=False, tab_width=Window.width*0.2, tab_height=Window.height * 0.08, background_color=DARK_GRAY)
 
@@ -72,7 +70,7 @@ class KubernetesInterface(BoxLayout):
         self.merge_tab       = MergeTab()
         self.pods_tab        = PodsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
         self.secrets_tab     = SecretsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
-        self.deployments_tab = DeploymentsTab( azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
+        self.deployments_tab = DeploymentsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
         self.tab_panel.add_widget(self.merge_tab)
         self.tab_panel.add_widget(self.pods_tab)
         self.tab_panel.add_widget(self.secrets_tab)
@@ -182,7 +180,6 @@ class KubernetesInterface(BoxLayout):
         ):
             self.merge_button.disabled = True
 
-
     def merge_button_callback(self, instance):
         """Execute the merge command using AzureClient."""
         subscription = self.subscription_spinner.text
@@ -196,15 +193,16 @@ class KubernetesInterface(BoxLayout):
 
     def on_merge_output(self, instance, output, success):
         """Handle merge output event from AzureClient."""
-        self.display_merge_result(output, success, self.merge_popup_manager)
+        self.display_merge_result(output, success)
         self.merge_popup_manager = None
 
-    def display_merge_result(self, output, success, popup_manager):
+    def display_merge_result(self, output, success):
         """Output the command result to the text box."""
         self.merge_tab.merge_output_text.text = output
         self.merge_successful = success
-        popup_manager.dismiss()
+        self.merge_popup_manager.dismiss()
         if success:
+            self.azure_client.safe_load_kube_config()
             selections = {
                 'region': self.region_spinner.text,
                 'environment': self.environment_spinner.text,

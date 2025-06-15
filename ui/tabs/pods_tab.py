@@ -36,13 +36,13 @@ class PodsTab(TabbedPanelItem):
         self.left_panel.add_widget(self.pods_container)
         self.content.add_widget(self.left_panel)
         
-        # Right panel: Command buttons (top 15%) and output (bottom 85%)
+        # Right panel: Command buttons (top 10%) and output (bottom 90%)
         self.right_panel = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
         
         # Command buttons
         self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.10)
         self.fetch_logs_button = Button(text='Fetch Logs', size_hint_x=0.5, disabled=True)
-        self.fetch_logs_button.bind(on_press=self.fetch_logs_button_callback)
+        self.fetch_logs_button.bind(on_press=self.get_logs_button_callback)
         self.describe_pod_button = Button(text='Describe Pod', size_hint_x=0.5, disabled=True)
         self.describe_pod_button.bind(on_press=self.describe_pod_button_callback)
         self.command_layout.add_widget(self.fetch_logs_button)
@@ -64,7 +64,6 @@ class PodsTab(TabbedPanelItem):
         
         self.content.add_widget(self.right_panel)
         self.add_widget(self.content)
-
 
     def get_pods_button_callback(self, instance):
         """Fetch pods using AzureClient."""
@@ -89,10 +88,10 @@ class PodsTab(TabbedPanelItem):
         self.filter_input.text = ""
         pods_output = output.strip()
         if pods_output:
-            pods_lines = pods_output.split('\n')[1:]  # Skip header
+            pods_lines = pods_output.split('\n')  # SDK returns pod names, one per line
             for line in pods_lines:
                 if line:
-                    pod_name = line.split()[0]
+                    pod_name = line
                     radio_button = ToggleButton(
                         text=pod_name,
                         group='pods',
@@ -112,7 +111,7 @@ class PodsTab(TabbedPanelItem):
         self.fetch_logs_button.disabled = not bool(self.last_selected_pod)
         self.describe_pod_button.disabled = not bool(self.last_selected_pod)
 
-    def fetch_logs_button_callback(self, instance):
+    def get_logs_button_callback(self, instance):
         """Fetch logs for the selected pod using AzureClient."""
         namespace = self.namespace_spinner.text
         self.logs_popup_manager = PopupManager("Getting Logs", "Fetching logs...")

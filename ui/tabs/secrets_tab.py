@@ -45,9 +45,9 @@ class SecretsTab(TabbedPanelItem):
         self.secrets_grid.clear_widgets()
         secrets_output = output.strip()
         if secrets_output:
-            secrets_lines = secrets_output.split('\n')[1:]  # Skip header
+            secrets_lines = secrets_output.split('\n')  # SDK returns secret names, one per line
             for line in secrets_lines:
                 if line:
-                    secret_name = line.split()[0]
+                    secret_name = line
                     radio_button = ToggleButton(text=secret_name, group='secrets', size_hint_y=None, height=40)
                     self.secrets_grid.add_widget(radio_button)
