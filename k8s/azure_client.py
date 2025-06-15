@@ -58,8 +58,6 @@ class AzureClient(EventDispatcher):
         """Fetch pods in the specified namespace using Kubernetes SDK asynchronously."""
         def fetch_pods():
             try:
-                # self._safe_load_kube_config()
-                # v1 = client.CoreV1Api()
                 pods = self.core_v1.list_namespaced_pod(namespace)
                 output = "\n".join(pod.metadata.name for pod in pods.items)
                 Clock.schedule_once(lambda dt: self.dispatch('on_pods_output', output), 0)
@@ -81,8 +79,6 @@ class AzureClient(EventDispatcher):
         """Fetch logs for a specific pod in the specified namespace using Kubernetes SDK asynchronously."""
         def fetch_logs():
             try:
-                # self._safe_load_kube_config()
-                # v1 = client.CoreV1Api()
                 logs = self.core_v1.read_namespaced_pod_log(name=pod, namespace=namespace)
                 Clock.schedule_once(lambda dt: self.dispatch('on_logs_output', logs), 0)
             except ApiException as e:
@@ -103,8 +99,6 @@ class AzureClient(EventDispatcher):
         """Fetch secrets in the specified namespace using Kubernetes SDK asynchronously."""
         def fetch_secrets():
             try:
-                # self._safe_load_kube_config()
-                # v1 = client.CoreV1Api()
                 secrets = self.core_v1.list_namespaced_secret(namespace)
                 output = "\n".join(secret.metadata.name for secret in secrets.items)
                 Clock.schedule_once(lambda dt: self.dispatch('on_secrets_output', output), 0)
@@ -126,8 +120,6 @@ class AzureClient(EventDispatcher):
         """Fetch deployments in the specified namespace using Kubernetes SDK asynchronously."""
         def fetch_deployments():
             try:
-                # self._safe_load_kube_config()
-                # v1 = client.AppsV1Api()
                 deployments = self.apps_v1.list_namespaced_deployment(namespace)
                 output = "\n".join(deployment.metadata.name for deployment in deployments.items)
                 Clock.schedule_once(lambda dt: self.dispatch('on_deployments_output', output), 0)
