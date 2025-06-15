@@ -75,9 +75,9 @@ class KubernetesInterface(BoxLayout):
         self.tab_panel = TabbedPanel(do_default_tab=False, tab_width=Window.width*0.2, tab_height=Window.height * 0.08, background_color=DARK_GRAY)
 
         # Tabs
-        self.merge_tab = MergeTab()
-        self.pods_tab = PodsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
-        self.secrets_tab = SecretsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
+        self.merge_tab       = MergeTab()
+        self.pods_tab        = PodsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
+        self.secrets_tab     = SecretsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
         self.deployments_tab = DeploymentsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
         self.tab_panel.add_widget(self.merge_tab)
         self.tab_panel.add_widget(self.pods_tab)
