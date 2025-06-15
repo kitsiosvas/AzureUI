@@ -1,4 +1,4 @@
-from kivy.app import App
+from kivymd.app import MDApp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.tabbedpanel import TabbedPanel
@@ -266,8 +266,10 @@ class KubernetesInterface(BoxLayout):
         self.check_merge_button_state()
 
 
-class KubernetesApp(App):
+class KubernetesApp(MDApp):
     def build(self):
+        self.theme_cls.primary_palette = "Blue"  # Minimal theme for MDDataTable
+        self.theme_cls.theme_style = "Light"  # Default to light theme
         return KubernetesInterface()
 
 if __name__ == '__main__':

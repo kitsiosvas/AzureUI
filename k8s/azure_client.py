@@ -4,6 +4,8 @@ from kivy.clock import Clock
 from kivy.event import EventDispatcher
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+from datetime import datetime, timezone
+from humanize import naturaltime
 
 import logging
 logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -59,8 +61,19 @@ class AzureClient(EventDispatcher):
         def fetch_pods():
             try:
                 pods = self.core_v1.list_namespaced_pod(namespace)
-                output = "\n".join(pod.metadata.name for pod in pods.items)
-                Clock.schedule_once(lambda dt: self.dispatch('on_pods_output', output), 0)
+                now = datetime.now(timezone.utc)
+                pod_data = [
+                    {
+                        "name": pod.metadata.name,
+                        "status": pod.status.phase,
+                        "age": naturaltime(now - pod.metadata.creation_timestamp.replace(tzinfo=timezone.utc)),
+                        "restarts": sum(
+                            status.restart_count for status in (pod.status.container_statuses or [])
+                        )
+                    }
+                    for pod in pods.items
+                ]
+                Clock.schedule_once(lambda dt: self.dispatch('on_pods_output', pod_data), 0)
             except ApiException as e:
                 error_output = f"Error fetching pods: {e.reason} ({e.status})"
                 Clock.schedule_once(lambda dt: self.dispatch('on_pods_output', error_output), 0)
