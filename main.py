@@ -188,22 +188,6 @@ class KubernetesInterface(BoxLayout):
         ):
             self.merge_button.disabled = True
 
-    def update_progress(self, dt):
-        """Update progress bar value for animation."""
-        self.progress_bar.value = (self.progress_bar.value + 5) % 100
-
-    def show_progress_popup(self, title, message):
-        """Show progress popup with custom message and start animation."""
-        self.progress_bar.value = 0
-        self.popup = Popup(title=title,
-                           content=Label(text=message),
-                           size_hint=(None, None), size=(400, 200))
-        self.popup.open()
-        if self.progress_schedule:
-            self.progress_schedule.cancel()
-        self.progress_schedule = Clock.schedule_interval(self.update_progress, self.progress_update_interval)
-        return self.popup
-
     def merge_button_callback(self, instance):
         """Execute the merge command using AzureClient."""
         subscription = self.subscription_spinner.text
