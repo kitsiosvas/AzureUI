@@ -36,7 +36,7 @@ class PodsTab(TabbedPanelItem):
         self.left_panel.add_widget(self.pods_container)
         self.content.add_widget(self.left_panel)
         
-        # Right panel: Command buttons (top 15%) and output (bottom 85%)
+        # Right panel: Command buttons (top 10%) and output (bottom 90%)
         self.right_panel = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
         
         # Command buttons
@@ -65,20 +65,19 @@ class PodsTab(TabbedPanelItem):
         self.content.add_widget(self.right_panel)
         self.add_widget(self.content)
 
-
     def get_pods_button_callback(self, instance):
-        """Fetch pods using AzureClient."""
+        """Fetch pods using AzureClient (SDK for PoC)."""
         namespace = self.namespace_spinner.text
         self.pods_popup_manager = PopupManager("Getting Pods", "Fetching pods...")
-        self.azure_client.get_pods(namespace)
+        self.azure_client.get_pods_sdk(namespace)
 
-    def on_pods_output(self, instance, output):
+    def on_pods_output(self, instance, output, is_sdk_output=False):
         """Handle pods output event from AzureClient."""
-        self.display_get_pods_result(output)
+        self.display_get_pods_result(output, is_sdk_output)
         self.pods_popup_manager.dismiss()
         self.pods_popup_manager = None
 
-    def display_get_pods_result(self, output):
+    def display_get_pods_result(self, output, is_sdk_output):
         """Display pods based on the command result."""
         self.pods_list.clear_widgets()
         self.last_selected_pod = None
@@ -89,10 +88,13 @@ class PodsTab(TabbedPanelItem):
         self.filter_input.text = ""
         pods_output = output.strip()
         if pods_output:
-            pods_lines = pods_output.split('\n')[1:]  # Skip header
+            if is_sdk_output:
+                pods_lines = pods_output.split('\n')  # SDK returns pod names, one per line
+            else:
+                pods_lines = pods_output.split('\n')[1:]  # CLI skips header
             for line in pods_lines:
                 if line:
-                    pod_name = line.split()[0]
+                    pod_name = line.split()[0] if not is_sdk_output else line
                     radio_button = ToggleButton(
                         text=pod_name,
                         group='pods',
