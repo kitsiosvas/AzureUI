@@ -18,24 +18,22 @@ class AzureClient(EventDispatcher):
         self.register_event_type('on_logs_output')
         self.register_event_type('on_secrets_output')
         self.register_event_type('on_deployments_output')
-        self.k8s_config_loaded = False
 
-    def _safe_load_kube_config(self):
+    def safe_load_kube_config(self):
         """Load Kubernetes config from ~/.kube/config set by az aks get-credentials."""
         import sys
         original_stdout = sys.stdout
         original_stderr = sys.stderr
-        if not self.k8s_config_loaded:
-            try:
-                sys.stdout = sys.__stdout__
-                sys.stderr = sys.__stderr__
-                config.load_kube_config()
-                self.k8s_config_loaded = True
-            except Exception as e:
-                Clock.schedule_once(lambda dt: self.dispatch('on_pods_output', f"Error loading kubeconfig: {str(e)}"), 0)
-            finally:
-                sys.stdout = original_stdout
-                sys.stderr = original_stderr
+        try:
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+            config.load_kube_config()
+
+            self.core_v1 = client.CoreV1Api()
+            self.apps_v1 = client.AppsV1Api()
+        finally:
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
 
     def execute_merge(self, subscription, resource_group, cluster_name):
         """Execute the merge command asynchronously and dispatch event."""
@@ -60,9 +58,9 @@ class AzureClient(EventDispatcher):
         """Fetch pods in the specified namespace using Kubernetes SDK asynchronously."""
         def fetch_pods():
             try:
-                self._safe_load_kube_config()
-                v1 = client.CoreV1Api()
-                pods = v1.list_namespaced_pod(namespace)
+                # self._safe_load_kube_config()
+                # v1 = client.CoreV1Api()
+                pods = self.core_v1.list_namespaced_pod(namespace)
                 output = "\n".join(pod.metadata.name for pod in pods.items)
                 Clock.schedule_once(lambda dt: self.dispatch('on_pods_output', output), 0)
             except ApiException as e:
@@ -83,9 +81,9 @@ class AzureClient(EventDispatcher):
         """Fetch logs for a specific pod in the specified namespace using Kubernetes SDK asynchronously."""
         def fetch_logs():
             try:
-                self._safe_load_kube_config()
-                v1 = client.CoreV1Api()
-                logs = v1.read_namespaced_pod_log(name=pod, namespace=namespace)
+                # self._safe_load_kube_config()
+                # v1 = client.CoreV1Api()
+                logs = self.core_v1.read_namespaced_pod_log(name=pod, namespace=namespace)
                 Clock.schedule_once(lambda dt: self.dispatch('on_logs_output', logs), 0)
             except ApiException as e:
                 error_output = f"Error fetching logs: {e.reason} ({e.status})"
@@ -105,9 +103,9 @@ class AzureClient(EventDispatcher):
         """Fetch secrets in the specified namespace using Kubernetes SDK asynchronously."""
         def fetch_secrets():
             try:
-                self._safe_load_kube_config()
-                v1 = client.CoreV1Api()
-                secrets = v1.list_namespaced_secret(namespace)
+                # self._safe_load_kube_config()
+                # v1 = client.CoreV1Api()
+                secrets = self.core_v1.list_namespaced_secret(namespace)
                 output = "\n".join(secret.metadata.name for secret in secrets.items)
                 Clock.schedule_once(lambda dt: self.dispatch('on_secrets_output', output), 0)
             except ApiException as e:
@@ -128,9 +126,9 @@ class AzureClient(EventDispatcher):
         """Fetch deployments in the specified namespace using Kubernetes SDK asynchronously."""
         def fetch_deployments():
             try:
-                self._safe_load_kube_config()
-                v1 = client.AppsV1Api()
-                deployments = v1.list_namespaced_deployment(namespace)
+                # self._safe_load_kube_config()
+                # v1 = client.AppsV1Api()
+                deployments = self.apps_v1.list_namespaced_deployment(namespace)
                 output = "\n".join(deployment.metadata.name for deployment in deployments.items)
                 Clock.schedule_once(lambda dt: self.dispatch('on_deployments_output', output), 0)
             except ApiException as e:
