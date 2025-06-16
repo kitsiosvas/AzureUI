@@ -3,7 +3,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.togglebutton import ToggleButton
+from kivymd.uix.datatables import MDDataTable
+from kivy.metrics import dp
+from data.colors import DARK_GRAY
 
 from ui.popup import PopupManager
 
@@ -24,15 +26,28 @@ class PodsTab(TabbedPanelItem):
         # UI: Horizontal split (left 30%, right 70%)
         self.content = BoxLayout(orientation='horizontal')
         
-        # Left panel: Get Pods button and pod list
+        # Left panel: Get Pods button and pod table
         self.left_panel = BoxLayout(orientation='vertical', size_hint=(0.3, 1))
         self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40, disabled=True)
         self.get_pods_button.bind(on_press=self.get_pods_button_callback)
         self.left_panel.add_widget(self.get_pods_button)
+        
+        # Scrollable table
         self.pods_container = ScrollView(size_hint=(1, 1))
-        self.pods_list = BoxLayout(orientation='vertical', size_hint_y=None, spacing=5, padding=5)
-        self.pods_list.bind(minimum_height=self.pods_list.setter('height'))
-        self.pods_container.add_widget(self.pods_list)
+        self.pods_table = MDDataTable(
+            use_pagination=False,
+            column_data=[
+                ("Name", dp(60)),
+                ("Status", dp(30)),
+                ("Age", dp(30)),
+                ("Restarts", dp(20))
+            ],
+            row_data=[],
+            rows_num=100,
+            background_color_selected_cell = DARK_GRAY,
+        )
+        self.pods_table.bind(on_row_press=self.pod_row_press)
+        self.pods_container.add_widget(self.pods_table)
         self.left_panel.add_widget(self.pods_container)
         self.content.add_widget(self.left_panel)
         
@@ -79,31 +94,38 @@ class PodsTab(TabbedPanelItem):
 
     def display_get_pods_result(self, output):
         """Display pods based on the command result."""
-        self.pods_list.clear_widgets()
         self.last_selected_pod = None
         self.fetch_logs_button.disabled = True
         self.describe_pod_button.disabled = True
         self.full_output = ""
         self.command_output.text = ""
         self.filter_input.text = ""
-        pods_output = output.strip()
-        if pods_output:
-            pods_lines = pods_output.split('\n')  # SDK returns pod names, one per line
-            for line in pods_lines:
-                if line:
-                    pod_name = line
-                    radio_button = ToggleButton(
-                        text=pod_name,
-                        group='pods',
-                        size_hint_y=None,
-                        height=40
-                    )
-                    radio_button.bind(on_press=self.pod_toggle_callback)
-                    self.pods_list.add_widget(radio_button)
+        
+        if isinstance(output, str) and "Error" in output:
+            self.pods_table.update_row_data(self.pods_table.column_data, [])
+            self.pods_table.height = dp(48)  # Header only
+            return
+        
+        # Update table with pod data
+        row_data = [
+            (pod["name"], pod["status"], pod["age"], str(pod["restarts"]))
+            for pod in output
+        ]
+        if len(row_data) > 100:
+            print(f"Warning: {len(row_data)} pods exceed table limit (100). Truncating to 100.")
+            row_data = row_data[:100]
+        self.pods_table.update_row_data([], row_data)
 
-    def pod_toggle_callback(self, instance):
-        """Handle pod selection."""
-        self.last_selected_pod = instance.text if instance.state == 'down' else None
+
+    def pod_row_press(self, instance_table, instance_row):
+        """Handle row selection in the table."""
+        # Get the row index and data
+        row_index = int(instance_row.index / len(self.pods_table.column_data))
+        if row_index >= 0 and row_index < len(self.pods_table.row_data):
+            pod_name = self.pods_table.row_data[row_index][0]
+            self.last_selected_pod = pod_name
+        else:
+            self.last_selected_pod = None
         self.check_get_logs_button_state()
 
     def check_get_logs_button_state(self):
