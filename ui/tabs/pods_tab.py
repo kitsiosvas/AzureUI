@@ -1,11 +1,11 @@
 from kivy.uix.tabbedpanel import TabbedPanelItem
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
+from kivymd.uix.button import MDRaisedButton
 from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.datatables import MDDataTable
 from kivy.metrics import dp
-from data.colors import DARK_GRAY
+from data.colors import DARK_GRAY, PURPLE, WHITE
 
 from ui.popup import PopupManager
 
@@ -28,7 +28,14 @@ class PodsTab(TabbedPanelItem):
         
         # Left panel: Get Pods button and pod table
         self.left_panel = BoxLayout(orientation='vertical', size_hint=(0.3, 1))
-        self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40, disabled=True)
+        self.get_pods_button = MDRaisedButton(
+            text='Get Pods',
+            size_hint=(1.0, None),
+            height=40,
+            disabled=True,
+            md_bg_color=DARK_GRAY,
+            text_color=WHITE
+        )
         self.get_pods_button.bind(on_press=self.get_pods_button_callback)
         self.left_panel.add_widget(self.get_pods_button)
         
@@ -36,6 +43,7 @@ class PodsTab(TabbedPanelItem):
         self.pods_container = ScrollView(size_hint=(1, 1))
         self.pods_table = MDDataTable(
             use_pagination=False,
+            background_color = WHITE,
             column_data=[
                 ("Name", dp(60)),
                 ("Status", dp(30)),
@@ -44,7 +52,7 @@ class PodsTab(TabbedPanelItem):
             ],
             row_data=[],
             rows_num=100,
-            background_color_selected_cell = DARK_GRAY,
+            background_color_selected_cell=DARK_GRAY,
         )
         self.pods_table.bind(on_row_press=self.pod_row_press)
         self.pods_container.add_widget(self.pods_table)
@@ -55,10 +63,22 @@ class PodsTab(TabbedPanelItem):
         self.right_panel = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
         
         # Command buttons
-        self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.10)
-        self.fetch_logs_button = Button(text='Fetch Logs', size_hint_x=0.5, disabled=True)
+        self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.10, spacing=2)
+        self.fetch_logs_button = MDRaisedButton(
+            text='Fetch Logs',
+            size_hint=(0.5, 1),
+            disabled=True,
+            md_bg_color=DARK_GRAY,
+            text_color=WHITE,
+        )
         self.fetch_logs_button.bind(on_press=self.get_logs_button_callback)
-        self.describe_pod_button = Button(text='Describe Pod', size_hint_x=0.5, disabled=True)
+        self.describe_pod_button = MDRaisedButton(
+            text='Describe Pod',
+            size_hint=(0.5, 1),
+            disabled=True,
+            md_bg_color=DARK_GRAY,
+            text_color=WHITE
+        )
         self.describe_pod_button.bind(on_press=self.describe_pod_button_callback)
         self.command_layout.add_widget(self.fetch_logs_button)
         self.command_layout.add_widget(self.describe_pod_button)
