@@ -1,7 +1,7 @@
 from kivymd.app import MDApp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.tabbedpanel import TabbedPanel
+from kivymd.uix.tab import MDTabs
 from ui.ColoredSpinner import ColoredSpinner
 from ui.Ribbon import Ribbon
 from data.colors import *
@@ -13,7 +13,6 @@ from ui.tabs.pods_tab import PodsTab
 from ui.tabs.secrets_tab import SecretsTab
 from kivy.core.window import Window
 from ui.cache import CacheManager
-
 
 # Toggle between real and dummy AzureClient (set USE_DUMMY=True for testing)
 USE_DUMMY = True
@@ -71,7 +70,14 @@ class KubernetesInterface(BoxLayout):
         self.add_widget(self.ribbon)
 
         # Tabbed content area
-        self.tab_panel = TabbedPanel(do_default_tab=False, tab_width=Window.width*0.2, tab_height=Window.height * 0.08, background_color=DARK_GRAY)
+        self.tab_panel = MDTabs(
+            tab_bar_height=Window.height * 0.08,
+            background_color=DARK_GRAY,
+            text_color_normal=WHITE,
+            text_color_active=WHITE,
+            indicator_color=PURPLE,
+            lock_swiping = True
+        )
 
         # Tabs
         self.merge_tab       = MergeTab()
@@ -82,7 +88,6 @@ class KubernetesInterface(BoxLayout):
         self.tab_panel.add_widget(self.pods_tab)
         self.tab_panel.add_widget(self.secrets_tab)
         self.tab_panel.add_widget(self.deployments_tab)
-        self.tab_panel.default_tab = self.merge_tab
         self.add_widget(self.tab_panel)
 
         # Merge success tracking

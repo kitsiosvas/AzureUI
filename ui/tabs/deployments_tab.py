@@ -1,15 +1,18 @@
-from kivy.uix.tabbedpanel import TabbedPanelItem
+from kivymd.uix.tab import MDTabsBase
+from kivymd.uix.floatlayout import MDFloatLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.togglebutton import ToggleButton
-
 from ui.popup import PopupManager
+from data.colors import *
+from kivymd.uix.button import MDRaisedButton
 
-class DeploymentsTab(TabbedPanelItem):
+
+class DeploymentsTab(MDFloatLayout, MDTabsBase):
     def __init__(self, azure_client, namespace_spinner, **kwargs):
-        super().__init__(text='Deployments', **kwargs)
+        super().__init__(title='Deployments', _md_bg_color=TAB_GRAY, **kwargs)  # Pass title to MDTabsBase
         self.azure_client = azure_client
         self.namespace_spinner = namespace_spinner
         self.deployments_popup_manager = None  # Store PopupManager for get_deployments
@@ -19,7 +22,7 @@ class DeploymentsTab(TabbedPanelItem):
 
         # UI
         self.content = BoxLayout(orientation='vertical')
-        self.get_deployments_button = Button(text='Get Deployments', size_hint_y=None, height=40, disabled=True)
+        self.get_deployments_button = MDRaisedButton(text='Get Deployments', size_hint=(1.0, None), height=40, disabled=True, md_bg_color=BUTTON_DARK_GRAY, text_color=WHITE)
         self.get_deployments_button.bind(on_press=self.get_deployments_button_callback)
         self.content.add_widget(self.get_deployments_button)
         self.deployments_container = ScrollView(size_hint_y=0.9)
@@ -27,6 +30,7 @@ class DeploymentsTab(TabbedPanelItem):
         self.deployments_grid.bind(minimum_height=self.deployments_grid.setter('height'))
         self.deployments_container.add_widget(self.deployments_grid)
         self.content.add_widget(self.deployments_container)
+        self.add_widget(self.content)
 
     def get_deployments_button_callback(self, instance):
         """Fetch deployments using AzureClient."""
