@@ -1,38 +1,35 @@
-from kivy.uix.tabbedpanel import TabbedPanelItem
+from kivymd.uix.tab import MDTabsBase
+from kivymd.uix.floatlayout import MDFloatLayout
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
+from kivymd.uix.button import MDRaisedButton
 from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.datatables import MDDataTable
 from kivy.metrics import dp
-from data.colors import DARK_GRAY
+from data.colors import *
 
 from ui.popup import PopupManager
 
-class PodsTab(TabbedPanelItem):
+class PodsTab(MDFloatLayout, MDTabsBase):
     def __init__(self, azure_client, namespace_spinner, **kwargs):
-        super().__init__(text='Pods', **kwargs)
+        super().__init__(title='Pods', _md_bg_color=TAB_GRAY, **kwargs)
         self.azure_client = azure_client
         self.namespace_spinner = namespace_spinner
         self.last_selected_pod = None
-        self.full_output = ""  # Store unfiltered command output
-        self.pods_popup_manager = None  # Store PopupManager for get_pods
-        self.logs_popup_manager = None  # Store PopupManager for get_logs
+        self.full_output = ""
+        self.pods_popup_manager = None
+        self.logs_popup_manager = None
         
-        # Bind to AzureClient's events
         self.azure_client.bind(on_pods_output=self.on_pods_output)
         self.azure_client.bind(on_logs_output=self.on_logs_output)
         
-        # UI: Horizontal split (left 30%, right 70%)
         self.content = BoxLayout(orientation='horizontal')
         
-        # Left panel: Get Pods button and pod table
         self.left_panel = BoxLayout(orientation='vertical', size_hint=(0.3, 1))
-        self.get_pods_button = Button(text='Get Pods', size_hint_y=None, height=40, disabled=True)
+        self.get_pods_button = MDRaisedButton(text='Get Pods', size_hint=(1.0, None), height=40, disabled=True, md_bg_color=BUTTON_DARK_GRAY, text_color=WHITE)
         self.get_pods_button.bind(on_press=self.get_pods_button_callback)
         self.left_panel.add_widget(self.get_pods_button)
         
-        # Scrollable table
         self.pods_container = ScrollView(size_hint=(1, 1))
         self.pods_table = MDDataTable(
             use_pagination=False,
@@ -44,41 +41,46 @@ class PodsTab(TabbedPanelItem):
             ],
             row_data=[],
             rows_num=100,
-            background_color_selected_cell = DARK_GRAY,
+            background_color_selected_cell=DARK_GRAY,
         )
         self.pods_table.bind(on_row_press=self.pod_row_press)
         self.pods_container.add_widget(self.pods_table)
         self.left_panel.add_widget(self.pods_container)
         self.content.add_widget(self.left_panel)
         
-        # Right panel: Command buttons (top 10%) and output (bottom 90%)
         self.right_panel = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
         
-        # Command buttons
-        self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.10)
-        self.fetch_logs_button = Button(text='Fetch Logs', size_hint_x=0.5, disabled=True)
+        self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.10, spacing=2)
+        self.fetch_logs_button = MDRaisedButton( text='Fetch Logs', size_hint=(0.5, 1), disabled=True, md_bg_color=BUTTON_DARK_GRAY, text_color=WHITE)
         self.fetch_logs_button.bind(on_press=self.get_logs_button_callback)
-        self.describe_pod_button = Button(text='Describe Pod', size_hint_x=0.5, disabled=True)
+        self.describe_pod_button = MDRaisedButton(text='Describe Pod', size_hint=(0.5, 1), disabled=True, md_bg_color=BUTTON_DARK_GRAY, text_color=WHITE)
         self.describe_pod_button.bind(on_press=self.describe_pod_button_callback)
         self.command_layout.add_widget(self.fetch_logs_button)
         self.command_layout.add_widget(self.describe_pod_button)
         self.right_panel.add_widget(self.command_layout)
         
-        # Output area: Filter + TextInput
         self.output_layout = BoxLayout(orientation='vertical', size_hint_y=0.90)
         self.filter_input = TextInput(
             multiline=False,
             size_hint_y=0.1,
-            hint_text='Filter (e.g., req_id, error)'
+            hint_text='Filter (e.g., req_id, error)',
         )
         self.filter_input.bind(on_text_validate=self.filter_output)
         self.output_layout.add_widget(self.filter_input)
-        self.command_output = TextInput(multiline=True, readonly=True, size_hint_y=0.9)
+        self.command_output = TextInput(
+            multiline=True,
+            readonly=True,
+            size_hint_y=0.9,
+        )
         self.output_layout.add_widget(self.command_output)
         self.right_panel.add_widget(self.output_layout)
         
         self.content.add_widget(self.right_panel)
         self.add_widget(self.content)
+
+
+
+        
 
     def get_pods_button_callback(self, instance):
         """Fetch pods using AzureClient."""
