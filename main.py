@@ -1,8 +1,6 @@
 from kivymd.app import MDApp
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
 from kivymd.uix.tab import MDTabs
-from ui.ColoredSpinner import ColoredSpinner
 from ui.Ribbon import Ribbon
 from data.colors import *
 from data.DATA import *
@@ -24,6 +22,7 @@ else:
 class KubernetesInterface(BoxLayout):
     SPINNER_WIDTH = 0.8
     BUTTON_WIDTH = 0.2
+    RIBBON_HEIGHT = 0.12  # 12% of window height
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -39,35 +38,20 @@ class KubernetesInterface(BoxLayout):
         self.setup_ui()
 
     def setup_ui(self):
-        # Create spinners and merge button
-        self.region_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_REGION_DROPDOWN, values=REGIONS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
-        self.environment_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_ENVIRONMENT_DROPDOWN, values=ENVIRONMENTS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
-        self.subscription_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
-        self.resource_group_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
-        self.cluster_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_CLUSTER_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
-        self.namespace_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_NAMESPACE_DROPDOWN, values=[], default_color=DARK_BLUE, selected_color=DARK_BLUE, height=40)
-        self.merge_button = Button(text='Merge', disabled=True)
-
-        # Bind spinner selections
-        self.region_spinner.bind(text=self.region_spinner_selection_callback)
-        self.environment_spinner.bind(text=self.environment_spinner_selection_callback)
-        self.subscription_spinner.bind(text=self.subscription_spinner_selection_callback)
-        self.resource_group_spinner.bind(text=self.resource_group_spinner_selection_callback)
-        self.cluster_spinner.bind(text=self.cluster_spinner_selection_callback)
-        self.namespace_spinner.bind(text=self.namespace_spinner_selection_callback)
-        self.merge_button.bind(on_press=self.merge_button_callback)
-
-        # Create ribbon
-        spinners = [
-            self.region_spinner,
-            self.environment_spinner,
-            self.subscription_spinner,
-            self.resource_group_spinner,
-            self.cluster_spinner,
-            self.namespace_spinner
-        ]
-        self.ribbon = Ribbon(spinners, self.merge_button, spinner_width=self.SPINNER_WIDTH, button_width=self.BUTTON_WIDTH)
+        self.ribbon = Ribbon(size_hint_y=self.RIBBON_HEIGHT, spinner_width=self.SPINNER_WIDTH, button_width=self.BUTTON_WIDTH)
         self.add_widget(self.ribbon)
+        
+        # Bind spinner selections
+        self.ribbon.region_spinner.bind(text=self.region_spinner_selection_callback)
+        self.ribbon.environment_spinner.bind(text=self.environment_spinner_selection_callback)
+        self.ribbon.subscription_spinner.bind(text=self.subscription_spinner_selection_callback)
+        self.ribbon.resource_group_spinner.bind(text=self.resource_group_spinner_selection_callback)
+        self.ribbon.cluster_spinner.bind(text=self.cluster_spinner_selection_callback)
+        self.ribbon.namespace_spinner.bind(text=self.namespace_spinner_selection_callback)
+        self.ribbon.merge_button.bind(on_press=self.merge_button_callback)
+
+        
+
 
         # Tabbed content area
         self.tab_panel = MDTabs(
@@ -81,9 +65,9 @@ class KubernetesInterface(BoxLayout):
 
         # Tabs
         self.merge_tab       = MergeTab()
-        self.pods_tab        = PodsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
-        self.secrets_tab     = SecretsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
-        self.deployments_tab = DeploymentsTab(azure_client=self.azure_client, namespace_spinner=self.namespace_spinner)
+        self.pods_tab        = PodsTab(azure_client=self.azure_client, namespace_spinner=self.ribbon.namespace_spinner)
+        self.secrets_tab     = SecretsTab(azure_client=self.azure_client, namespace_spinner=self.ribbon.namespace_spinner)
+        self.deployments_tab = DeploymentsTab(azure_client=self.azure_client, namespace_spinner=self.ribbon.namespace_spinner)
         self.tab_panel.add_widget(self.merge_tab)
         self.tab_panel.add_widget(self.pods_tab)
         self.tab_panel.add_widget(self.secrets_tab)
@@ -108,44 +92,44 @@ class KubernetesInterface(BoxLayout):
         self.update_namespace_spinner()
 
     def update_subscription_spinner(self):
-        region_selected = self.region_spinner.text
-        environment_selected = self.environment_spinner.text
+        region_selected = self.ribbon.region_spinner.text
+        environment_selected = self.ribbon.environment_spinner.text
         if region_selected != DEFAULT_TEXT_REGION_DROPDOWN and environment_selected != DEFAULT_TEXT_ENVIRONMENT_DROPDOWN:
             # Filter subscriptions based on selected region and environment
             filtered_subscriptions = [
                 sub for sub in SUBSCRIPTIONS
                 if sub.region == region_selected and sub.environment == environment_selected
             ]
-            self.subscription_spinner.values = [sub.name for sub in filtered_subscriptions]
-            self.subscription_spinner.text = DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN  # Reset to default
+            self.ribbon.subscription_spinner.values = [sub.name for sub in filtered_subscriptions]
+            self.ribbon.subscription_spinner.text = DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN  # Reset to default
 
             # Reset resource group and cluster spinners since subscription has changed
-            self.resource_group_spinner.values = []
-            self.cluster_spinner.values = []
-            self.resource_group_spinner.text = DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN
-            self.cluster_spinner.text = DEFAULT_TEXT_CLUSTER_DROPDOWN
+            self.ribbon.resource_group_spinner.values = []
+            self.ribbon.cluster_spinner.values = []
+            self.ribbon.resource_group_spinner.text = DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN
+            self.ribbon.cluster_spinner.text = DEFAULT_TEXT_CLUSTER_DROPDOWN
 
     def update_namespace_spinner(self):
         """Update the namespace spinner based on the selected environment."""
-        environment_selected = self.environment_spinner.text
-        current_namespace = self.namespace_spinner.text
+        environment_selected = self.ribbon.environment_spinner.text
+        current_namespace = self.ribbon.namespace_spinner.text
         if environment_selected == DEFAULT_TEXT_ENVIRONMENT_DROPDOWN:
-            self.namespace_spinner.values = []
-            self.namespace_spinner.text = DEFAULT_TEXT_NAMESPACE_DROPDOWN
+            self.ribbon.namespace_spinner.values = []
+            self.ribbon.namespace_spinner.text = DEFAULT_TEXT_NAMESPACE_DROPDOWN
         else:
             filtered_namespaces = [ns.name for ns in NAMESPACES if ns.environment == environment_selected]
-            self.namespace_spinner.values = filtered_namespaces
+            self.ribbon.namespace_spinner.values = filtered_namespaces
             if current_namespace in filtered_namespaces:
-                self.namespace_spinner.text = current_namespace
+                self.ribbon.namespace_spinner.text = current_namespace
             else:
-                self.namespace_spinner.text = DEFAULT_TEXT_NAMESPACE_DROPDOWN
+                self.ribbon.namespace_spinner.text = DEFAULT_TEXT_NAMESPACE_DROPDOWN
 
     def subscription_spinner_selection_callback(self, spinner, text):
         """Update the resource group spinner based on the selected subscription."""
         self.selected_subscription = next((sub for sub in SUBSCRIPTIONS if sub.name == text), None)
         if self.selected_subscription:
-            self.resource_group_spinner.values = list(self.selected_subscription.resource_groups.keys())
-            self.resource_group_spinner.text = DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN
+            self.ribbon.resource_group_spinner.values = list(self.selected_subscription.resource_groups.keys())
+            self.ribbon.resource_group_spinner.text = DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN
             self.reset_merge_state()
         self.check_merge_button_state()
         self.check_command_buttons_state()
@@ -153,8 +137,8 @@ class KubernetesInterface(BoxLayout):
     def resource_group_spinner_selection_callback(self, spinner, text):
         """Update the cluster spinner based on the selected resource group."""
         if self.selected_subscription:
-            self.cluster_spinner.values = self.selected_subscription.resource_groups.get(text, [])
-            self.cluster_spinner.text = DEFAULT_TEXT_CLUSTER_DROPDOWN
+            self.ribbon.cluster_spinner.values = self.selected_subscription.resource_groups.get(text, [])
+            self.ribbon.cluster_spinner.text = DEFAULT_TEXT_CLUSTER_DROPDOWN
             self.reset_merge_state()
         self.check_merge_button_state()
         self.check_command_buttons_state()
@@ -176,13 +160,13 @@ class KubernetesInterface(BoxLayout):
 
     def check_merge_button_state(self, *args):
         """Enable the Merge button if all required selections are made."""
-        subscription = self.subscription_spinner.text
-        resource_group = self.resource_group_spinner.text
-        cluster = self.cluster_spinner.text
+        subscription = self.ribbon.subscription_spinner.text
+        resource_group = self.ribbon.resource_group_spinner.text
+        cluster = self.ribbon.cluster_spinner.text
         if subscription != DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN and resource_group != DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN and cluster != DEFAULT_TEXT_CLUSTER_DROPDOWN:
-            self.merge_button.disabled = False
+            self.ribbon.merge_button.disabled = False
         else:
-            self.merge_button.disabled = True
+            self.ribbon.merge_button.disabled = True
 
         # Disable the button if selections haven't changed
         if (
@@ -190,13 +174,13 @@ class KubernetesInterface(BoxLayout):
             self.last_selection[1] == resource_group and
             self.last_selection[2] == cluster
         ):
-            self.merge_button.disabled = True
+            self.ribbon.merge_button.disabled = True
 
     def merge_button_callback(self, instance):
         """Execute the merge command using AzureClient."""
-        subscription = self.subscription_spinner.text
-        resource_group = self.resource_group_spinner.text
-        cluster = self.cluster_spinner.text
+        subscription = self.ribbon.subscription_spinner.text
+        resource_group = self.ribbon.resource_group_spinner.text
+        cluster = self.ribbon.cluster_spinner.text
         self.merge_popup_manager = PopupManager("Executing", "Merging cluster...")
         self.azure_client.execute_merge(subscription, resource_group, cluster)
         self.last_merged_subscription = subscription
@@ -216,18 +200,18 @@ class KubernetesInterface(BoxLayout):
         if success:
             self.azure_client.safe_load_kube_config()
             selections = {
-                'region': self.region_spinner.text,
-                'environment': self.environment_spinner.text,
-                'subscription': self.subscription_spinner.text,
-                'resource_group': self.resource_group_spinner.text,
-                'cluster': self.cluster_spinner.text
+                'region': self.ribbon.region_spinner.text,
+                'environment': self.ribbon.environment_spinner.text,
+                'subscription': self.ribbon.subscription_spinner.text,
+                'resource_group': self.ribbon.resource_group_spinner.text,
+                'cluster': self.ribbon.cluster_spinner.text
             }
             self.cache_manager.save_selections(selections)
         self.check_command_buttons_state()
 
     def check_command_buttons_state(self):
         """Enable/disable command buttons if namespace is selected and merge was successful."""
-        namespace_selected = self.namespace_spinner.text != DEFAULT_TEXT_NAMESPACE_DROPDOWN
+        namespace_selected = self.ribbon.namespace_spinner.text != DEFAULT_TEXT_NAMESPACE_DROPDOWN
         buttons_enabled = namespace_selected and self.merge_successful
         self.pods_tab.get_pods_button.disabled = not buttons_enabled
         self.secrets_tab.get_secrets_button.disabled = not buttons_enabled
@@ -264,16 +248,16 @@ class KubernetesInterface(BoxLayout):
         cached_selections = self.cache_manager.load_selections(defaults, valid_options)
 
         # Set spinners and trigger callbacks
-        self.region_spinner.text = cached_selections['region']
-        self.region_spinner_selection_callback(self.region_spinner, cached_selections['region'])
-        self.environment_spinner.text = cached_selections['environment']
-        self.environment_spinner_selection_callback(self.environment_spinner, cached_selections['environment'])
-        self.subscription_spinner.text = cached_selections['subscription']
-        self.subscription_spinner_selection_callback(self.subscription_spinner, cached_selections['subscription'])
-        self.resource_group_spinner.text = cached_selections['resource_group']
-        self.resource_group_spinner_selection_callback(self.resource_group_spinner, cached_selections['resource_group'])
-        self.cluster_spinner.text = cached_selections['cluster']
-        self.cluster_spinner_selection_callback(self.cluster_spinner, cached_selections['cluster'])
+        self.ribbon.region_spinner.text = cached_selections['region']
+        self.region_spinner_selection_callback(self.ribbon.region_spinner, cached_selections['region'])
+        self.ribbon.environment_spinner.text = cached_selections['environment']
+        self.environment_spinner_selection_callback(self.ribbon.environment_spinner, cached_selections['environment'])
+        self.ribbon.subscription_spinner.text = cached_selections['subscription']
+        self.subscription_spinner_selection_callback(self.ribbon.subscription_spinner, cached_selections['subscription'])
+        self.ribbon.resource_group_spinner.text = cached_selections['resource_group']
+        self.resource_group_spinner_selection_callback(self.ribbon.resource_group_spinner, cached_selections['resource_group'])
+        self.ribbon.cluster_spinner.text = cached_selections['cluster']
+        self.cluster_spinner_selection_callback(self.ribbon.cluster_spinner, cached_selections['cluster'])
 
         self.check_merge_button_state()
 

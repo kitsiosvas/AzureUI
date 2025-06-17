@@ -1,12 +1,13 @@
 from data.colors import LIGHT_GRAY, SHADOW_GRAY
-
-
+from ui.ColoredSpinner import ColoredSpinner
+from kivymd.uix.button import MDRaisedButton
 from kivy.graphics import Color, Rectangle
 from kivy.uix.boxlayout import BoxLayout
-
+from data.colors import *
+from data.DATA import *
 
 class Ribbon(BoxLayout):
-    def __init__(self, spinners, merge_button, spinner_width=0.8, button_width=0.2, **kwargs):
+    def __init__(self, size_hint_y=0.12, spinner_width=0.8, button_width=0.2, **kwargs):
         super(Ribbon, self).__init__(**kwargs)
         self.orientation = 'horizontal'
         self.size_hint_y = 0.12  # 12% of window height
@@ -17,6 +18,24 @@ class Ribbon(BoxLayout):
             self.shadow = Rectangle(size=(self.size[0], self.size[1]+5), pos=(self.pos[0], self.pos[1]-5))
         self.bind(size=self._update_rect, pos=self._update_rect)
 
+        # Create spinners and merge button
+        self.region_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_REGION_DROPDOWN, values=REGIONS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.environment_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_ENVIRONMENT_DROPDOWN, values=ENVIRONMENTS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.subscription_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_SUBSCRIPTION_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.resource_group_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_RESOURCE_GROUP_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.cluster_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_CLUSTER_DROPDOWN, values=[], default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
+        self.namespace_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_NAMESPACE_DROPDOWN, values=[], default_color=DARK_BLUE, selected_color=DARK_BLUE, height=40)
+        self.merge_button = MDRaisedButton(text='Merge', size_hint=(1, 1), disabled=True, md_bg_color=BUTTON_DARK_GRAY, text_color=WHITE)
+
+        # Create ribbon
+        spinners = [
+            self.region_spinner,
+            self.environment_spinner,
+            self.subscription_spinner,
+            self.resource_group_spinner,
+            self.cluster_spinner,
+            self.namespace_spinner
+        ]
         # Spinner component
         spinner_layout = BoxLayout(orientation='vertical', size_hint_x=spinner_width)
         row1 = BoxLayout(orientation='horizontal', size_hint_y=0.5)
@@ -35,8 +54,8 @@ class Ribbon(BoxLayout):
 
         # Button component
         button_layout = BoxLayout(orientation='vertical', size_hint_x=button_width)
-        merge_button.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
-        button_layout.add_widget(merge_button)
+        self.merge_button.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
+        button_layout.add_widget(self.merge_button)
 
         self.add_widget(spinner_layout)
         self.add_widget(button_layout)
