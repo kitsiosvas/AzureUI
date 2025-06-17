@@ -22,7 +22,7 @@ else:
 class KubernetesInterface(BoxLayout):
     SPINNER_WIDTH = 0.8
     BUTTON_WIDTH = 0.2
-    RIBBON_HEIGHT = 0.12  # 12% of window height
+    RIBBON_HEIGHT = 0.12
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -33,7 +33,7 @@ class KubernetesInterface(BoxLayout):
         self.progress_update_interval = 0.5
         self.cache_manager = CacheManager()
         self.merge_successful = False
-        self.merge_popup_manager = None  # Store PopupManager for merge
+        self.merge_popup_manager = None
         self.azure_client.bind(on_merge_output=self.on_merge_output)
         self.setup_ui()
 
@@ -41,7 +41,7 @@ class KubernetesInterface(BoxLayout):
         self.ribbon = Ribbon(size_hint_y=self.RIBBON_HEIGHT, spinner_width=self.SPINNER_WIDTH, button_width=self.BUTTON_WIDTH)
         self.add_widget(self.ribbon)
         
-        # Bind spinner selections
+        # Bind spinners to callbacks
         self.ribbon.region_spinner.bind(text=self.region_spinner_selection_callback)
         self.ribbon.environment_spinner.bind(text=self.environment_spinner_selection_callback)
         self.ribbon.subscription_spinner.bind(text=self.subscription_spinner_selection_callback)
@@ -49,9 +49,6 @@ class KubernetesInterface(BoxLayout):
         self.ribbon.cluster_spinner.bind(text=self.cluster_spinner_selection_callback)
         self.ribbon.namespace_spinner.bind(text=self.namespace_spinner_selection_callback)
         self.ribbon.merge_button.bind(on_press=self.merge_button_callback)
-
-        
-
 
         # Tabbed content area
         self.tab_panel = MDTabs(

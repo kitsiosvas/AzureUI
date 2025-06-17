@@ -11,6 +11,9 @@ from data.colors import *
 from ui.popup import PopupManager
 
 class PodsTab(MDFloatLayout, MDTabsBase):
+    POD_LAYOUT_SIZE_HINT = (0.45, 1)
+    OUTPUT_LAYOUT_SIZE_HINT = (0.55, 1)
+
     def __init__(self, azure_client, namespace_spinner, **kwargs):
         super().__init__(title='Pods', _md_bg_color=TAB_GRAY, **kwargs)
         self.azure_client = azure_client
@@ -25,7 +28,8 @@ class PodsTab(MDFloatLayout, MDTabsBase):
         
         self.content = BoxLayout(orientation='horizontal')
         
-        self.left_panel = BoxLayout(orientation='vertical', size_hint=(0.3, 1))
+        # LEFT PANEL
+        self.left_panel = BoxLayout(orientation='vertical', size_hint=self.POD_LAYOUT_SIZE_HINT)
         self.get_pods_button = MDRaisedButton(text='Get Pods', size_hint=(1.0, None), height=40, disabled=True, md_bg_color=BUTTON_DARK_GRAY, text_color=WHITE)
         self.get_pods_button.bind(on_press=self.get_pods_button_callback)
         self.left_panel.add_widget(self.get_pods_button)
@@ -48,7 +52,8 @@ class PodsTab(MDFloatLayout, MDTabsBase):
         self.left_panel.add_widget(self.pods_container)
         self.content.add_widget(self.left_panel)
         
-        self.right_panel = BoxLayout(orientation='vertical', size_hint=(0.7, 1))
+        # RIGHT PANEL
+        self.right_panel = BoxLayout(orientation='vertical', size_hint=self.OUTPUT_LAYOUT_SIZE_HINT)
         
         self.command_layout = BoxLayout(orientation='horizontal', size_hint_y=0.10, spacing=2)
         self.fetch_logs_button = MDRaisedButton( text='Fetch Logs', size_hint=(0.5, 1), disabled=True, md_bg_color=BUTTON_DARK_GRAY, text_color=WHITE)
@@ -81,7 +86,7 @@ class PodsTab(MDFloatLayout, MDTabsBase):
 
 
         
-
+    # CALLBACKS
     def get_pods_button_callback(self, instance):
         """Fetch pods using AzureClient."""
         namespace = self.namespace_spinner.text

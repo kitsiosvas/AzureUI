@@ -11,12 +11,6 @@ class Ribbon(BoxLayout):
         super(Ribbon, self).__init__(**kwargs)
         self.orientation = 'horizontal'
         self.size_hint_y = 0.12  # 12% of window height
-        with self.canvas.before:
-            Color(*LIGHT_GRAY)
-            self.rect = Rectangle(size=self.size, pos=self.pos)
-            Color(*SHADOW_GRAY)
-            self.shadow = Rectangle(size=(self.size[0], self.size[1]+5), pos=(self.pos[0], self.pos[1]-5))
-        self.bind(size=self._update_rect, pos=self._update_rect)
 
         # Create spinners and merge button
         self.region_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_REGION_DROPDOWN, values=REGIONS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
