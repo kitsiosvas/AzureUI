@@ -10,7 +10,7 @@ class Ribbon(BoxLayout):
     def __init__(self, size_hint_y=0.12, spinner_width=0.8, button_width=0.2, **kwargs):
         super(Ribbon, self).__init__(**kwargs)
         self.orientation = 'horizontal'
-        self.size_hint_y = 0.12  # 12% of window height
+        self.size_hint_y = size_hint_y
 
         # Create spinners and merge button
         self.region_spinner = ColoredSpinner(default_text=DEFAULT_TEXT_REGION_DROPDOWN, values=REGIONS, default_color=DARK_GRAY, selected_color=DROPDOWN_SELECTED_GREEN, height=40)
