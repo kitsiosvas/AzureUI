@@ -7,15 +7,16 @@ from kivy.metrics import dp
 from kivy.properties import BooleanProperty, ObjectProperty
 from kivy.graphics import Color, Rectangle
 from kivy.event import EventDispatcher
+from data import colors
 
 class DataTableHeader(Label):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.size_hint_y = None
         self.height = dp(30)
-        self.color = (1, 1, 1, 1)
-        with self.canvas.before:
-            Color(0.1, 0.2, 0.6, 1)
+        self.color = colors.WHITE # Text color for header
+        with self.canvas.before: # Background color for header
+            Color(*colors.DATATABLE_HEADER_BG_COLOR)
             self.rect = Rectangle()
         self.bind(pos=self.update_rect, size=self.update_rect)
 
@@ -29,9 +30,9 @@ class DataTableCell(ButtonBehavior, Label):
         self.row_index = row_index
         self.size_hint_y = None
         self.height = dp(30)
-        self.color = (0, 0, 0, 1)
+        self.color = colors.BLACK  # Text color for cells
         with self.canvas.before:
-            self.bg_color = Color(1, 1, 1, 1)
+            self.bg_color = Color(*colors.WHITE)
             self.rect = Rectangle()
         self.bind(pos=self.update_rect, size=self.update_rect)
 
@@ -63,7 +64,7 @@ class DataTableRow(BoxLayout):
         self.update_colors()
 
     def update_colors(self):
-        color = [0.5, 0.7, 0.9, 1] if self.selected else self.bg_color_default
+        color = colors.DATATABLE_ROW_SELECTED_BG_COLOR if self.selected else self.bg_color_default
         for cell in self.cells:
             cell.bg_color.rgba = color
 
@@ -91,10 +92,8 @@ class CustomDataTable(BoxLayout, EventDispatcher):
         self.scroll_view = ScrollView(
             do_scroll_x=True,
             do_scroll_y=True,
-            scroll_type=['bars', 'content'],  # Enable drag and scrollbars
-            bar_width=dp(10),  # Visible scrollbars
-            bar_color=[0.7, 0.7, 0.7, 1],  # Gray bars
-            bar_inactive_color=[0.3, 0.3, 0.3, 1]
+            scroll_type=['bars', 'content'],
+            bar_width=dp(10),
         )
         self.row_container = BoxLayout(orientation='vertical', size_hint=(None, None))
         self.row_container.bind(minimum_height=self.row_container.setter('height'))
@@ -121,7 +120,7 @@ class CustomDataTable(BoxLayout, EventDispatcher):
         self.row_container.width = total_width
         self.header_layout.width = total_width
         for i, row in enumerate(row_data):
-            bg_color = [0.95, 0.95, 0.95, 1] if i % 2 == 0 else [0.85, 0.85, 0.85, 1]
+            bg_color = colors.DATATABLE_EVEN_ROW_BG_COLOR if i % 2 == 0 else colors.DATATABLE_ODD_ROW_BG_COLOR
             row_widget = DataTableRow(row, self.column_widths, bg_color, table=self)
             self.row_container.add_widget(row_widget)
             self.rows.append(row_widget)

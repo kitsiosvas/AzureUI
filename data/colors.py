@@ -1,4 +1,5 @@
 WHITE = (1, 1, 1, 1)
+BLACK = (0, 0, 0, 1)
 LIGHT_GRAY = (0.8, 0.8, 0.8, 0.8)
 GRAY = (0.8, 0.8, 0.8, 1)
 DARK_GRAY = (0.5, 0.5, 0.5, 1)
@@ -6,6 +7,11 @@ DARK_BLUE = (0.5, 0.5, 1, 1)
 DROPDOWN_SELECTED_GREEN = (0.0, 1.0, 0.0, 1)
 SHADOW_GRAY = (0.3, 0.3, 0.3, 0.8)
 PURPLE = (0.5, 0.0, 0.5, 1)
-BLACK = (0, 0, 0, 1)
 BUTTON_DARK_GRAY = (0.1, 0.1, 0.1, 0.1)
 TAB_GRAY = (0.8, 0.8, 0.8, 1)
+
+# datatable colors
+DATATABLE_ODD_ROW_BG_COLOR = [0.95, 0.95, 0.95, 1]
+DATATABLE_EVEN_ROW_BG_COLOR = [0.85, 0.85, 0.85, 1]
+DATATABLE_ROW_SELECTED_BG_COLOR = [0.5, 0.7, 0.9, 1]
+DATATABLE_HEADER_BG_COLOR = [0.1, 0.2, 0.6, 1]
