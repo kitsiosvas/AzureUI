@@ -73,25 +73,58 @@ class DummyAzureClient(EventDispatcher):
         pass
 
     def get_describe_pod(self, pod, namespace):
-        """Mock fetching pod description."""
+        """Mock pod describe with formatted output."""
         def fetch_describe(dt):
             try:
-                mock_yaml = f"""apiVersion: v1
-                                kind: Pod
-                                metadata:
-                                name: {pod}
-                                namespace: {namespace}
-                                spec:
-                                containers:
-                                - name: mock-container
-                                    image: nginx:latest
-                                status:
-                                phase: Running
-                                startTime: "2025-09-20T00:00:00Z"
-                                conditions:
-                                - type: Ready
-                                    status: "True" """
-                self.dispatch('on_describe_output', mock_yaml)
+                # Mock like kubectl describe
+                mock_output = f"""Name:         {pod}
+                                Namespace:    {namespace}
+                                Priority:     0
+                                Node:         node01/192.168.1.10
+                                Start Time:   Fri, 20 Sep 2025 12:00:00 +0000
+                                Labels:       app={pod}
+                                Annotations:  <none>
+                                Status:       Running
+                                IP:           10.244.1.2
+                                IPs:
+                                IP:  10.244.1.2
+                                Containers:
+                                {pod}:
+                                    Container ID:   containerd://mock-id-123
+                                    Image:          nginx:latest
+                                    Image ID:       docker.io/library/nginx@sha256:mockhash
+                                    Port:           <none>
+                                    Host Port:      <none>
+                                    State:          Running
+                                    Started:      Fri, 20 Sep 2025 12:00:05 +0000
+                                    Ready:          True
+                                    Restart Count:  0
+                                    Environment:    <none>
+                                    Mounts:
+                                    /var/run/secrets/kubernetes.io/serviceaccount from default-token-abc (ro)
+                                Conditions:
+                                Type              Status
+                                Initialized       True 
+                                Ready             True 
+                                ContainersReady   True 
+                                PodScheduled      True 
+                                Volumes:
+                                default-token-abc:
+                                    Type:                    Projected
+                                    TokenExpirationSeconds:  3600
+                                QoS Class:                   BestEffort
+                                Node-Selectors:              <none>
+                                Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                                                            node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+                                Events:
+                                Type    Reason     Age   From               Message
+                                ----    ------     ----  ----               -------
+                                Normal  Scheduled  1m    default-scheduler  Successfully assigned default/{pod} to node01
+                                Normal  Pulling    1m    kubelet            Pulling image "nginx"
+                                Normal  Pulled     1m    kubelet            Successfully pulled image "nginx"
+                                Normal  Created    1m    kubelet            Created container {pod}
+                                Normal  Started    1m    kubelet            Started container {pod}"""
+                self.dispatch('on_describe_output', mock_output)
             except Exception as e:
                 self.dispatch('on_describe_output', f"Error describing pod: {str(e)}")
         Clock.schedule_once(fetch_describe, 1)  # Simulate delay

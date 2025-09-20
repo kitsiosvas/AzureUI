@@ -7,6 +7,7 @@ from kubernetes.client.rest import ApiException
 from datetime import datetime, timezone
 from humanize import naturaltime
 import logging
+import json
 
 
 logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -125,8 +126,8 @@ class AzureClient(EventDispatcher):
                 if pod_obj.spec.node_name:
                     lines.append(f"Node:         {pod_obj.spec.node_name}/{pod_obj.status.host_ip or 'N/A'}")
                 lines.append(f"Start Time:   {pod_obj.metadata.creation_timestamp}")
-                lines.append(f"Labels:       {pod_obj.metadata.labels or '<none>':10}")
-                lines.append(f"Annotations:  {pod_obj.metadata.annotations or '<none>':10}")
+                lines.append(f"Labels:       {json.dumps(pod_obj.metadata.labels) or '<none>':10}")
+                lines.append(f"Annotations:  {json.dumps(pod_obj.metadata.annotations) or '<none>':10}")
                 lines.append(f"Status:       {pod_obj.status.phase}")
                 if pod_obj.status.pod_ip:
                     lines.append(f"IP:           {pod_obj.status.pod_ip}")
@@ -175,19 +176,6 @@ class AzureClient(EventDispatcher):
                 lines.append(f"QoS Class:           {getattr(pod_obj, 'qos_class', '<none>')}")
                 lines.append("Node-Selectors:      <none>")
                 lines.append("Tolerations:         <none>")  # Add parsing if needed
-                
-                # Events
-                events_api = client.EventsV1Api()
-                events = events_api.list_namespaced_event(namespace, field_selector=f'involvedObject.name={pod}')
-                if events.items:
-                    lines.append("Events:")
-                    lines.append("  Type    Reason     Age   From               Message")
-                    lines.append("  ----    ------     ----  ----               -------")
-                    for event in events.items:
-                        age = naturaltime(datetime.now(timezone.utc) - event.last_timestamp.replace(tzinfo=timezone.utc)) if event.last_timestamp else "N/A"
-                        lines.append(f"  Normal  {event.reason:<10} {age:<5} {event.source.component or 'N/A':<18} {event.message}")
-                else:
-                    lines.append("Events:               <none>")
                 
                 output = "\n".join(lines)
                 Clock.schedule_once(lambda dt: self.dispatch('on_describe_output', output), 0)
