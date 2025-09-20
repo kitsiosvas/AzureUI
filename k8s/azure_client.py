@@ -6,8 +6,9 @@ from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from datetime import datetime, timezone
 from humanize import naturaltime
-
+import yaml
 import logging
+
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 logging.getLogger('http.client').setLevel(logging.WARNING)
 logging.getLogger('kubernetes').setLevel(logging.WARNING)
@@ -20,6 +21,7 @@ class AzureClient(EventDispatcher):
         self.register_event_type('on_logs_output')
         self.register_event_type('on_secrets_output')
         self.register_event_type('on_deployments_output')
+        self.register_event_type('on_describe_output')
 
     def safe_load_kube_config(self):
         """Load Kubernetes config from ~/.kube/config set by az aks get-credentials."""
@@ -106,6 +108,27 @@ class AzureClient(EventDispatcher):
 
     def on_logs_output(self, output):
         """Event handler for logs output."""
+        pass
+
+    def get_describe_pod(self, pod, namespace):
+        """Fetch detailed description of a pod using Kubernetes SDK asynchronously."""
+        def fetch_describe():
+            try:
+                pod_obj = self.core_v1.read_namespaced_pod(name=pod, namespace=namespace)
+                output = yaml.dump(pod_obj.to_dict(), default_flow_style=False, indent=2)
+                Clock.schedule_once(lambda dt: self.dispatch('on_describe_output', output), 0)
+            except ApiException as e:
+                error_output = f"Error describing pod: {e.reason} ({e.status})"
+                Clock.schedule_once(lambda dt: self.dispatch('on_describe_output', error_output), 0)
+            except Exception as e:
+                error_output = f"Error describing pod: {str(e)}"
+                Clock.schedule_once(lambda dt: self.dispatch('on_describe_output', error_output), 0)
+
+        thread = threading.Thread(target=fetch_describe)
+        thread.start()
+
+    def on_describe_output(self, output):
+        """Event handler for describe output."""
         pass
 
     def get_secrets(self, namespace):

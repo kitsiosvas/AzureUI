@@ -24,7 +24,8 @@ class PodsTab(MDFloatLayout, MDTabsBase):
         
         self.azure_client.bind(on_pods_output=self.on_pods_output)
         self.azure_client.bind(on_logs_output=self.on_logs_output)
-        
+        self.azure_client.bind(on_describe_output=self.on_describe_output)
+
         self.content = BoxLayout(orientation='horizontal')
         
         # LEFT PANEL
@@ -137,11 +138,22 @@ class PodsTab(MDFloatLayout, MDTabsBase):
         self.command_output.text = output
 
     def describe_pod_button_callback(self, instance):
-        """Placeholder for Describe Pod command."""
-        print("Describe Pod not implemented")
-        self.full_output = "Describe Pod output placeholder"
+        """Fetch describe for the selected pod using AzureClient."""
+        namespace = self.namespace_spinner.text
+        self.logs_popup_manager = PopupManager("Getting Describe", "Fetching pod describe...")
+        self.azure_client.get_describe_pod(self.last_selected_pod, namespace)
+
+    def on_describe_output(self, instance, output):
+        """Handle describe output event from AzureClient."""
+        self.display_get_describe_result(output)
+        self.logs_popup_manager.dismiss()  # Reuse var
+        self.logs_popup_manager = None
+
+    def display_get_describe_result(self, output):
+        """Display the describe output based on the command result."""
+        self.full_output = output
         self.filter_input.text = ""
-        self.command_output.text = self.full_output
+        self.command_output.text = output
 
     def filter_output(self, instance):
         """Filter command_output based on filter_input text."""

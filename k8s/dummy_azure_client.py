@@ -12,6 +12,7 @@ class DummyAzureClient(EventDispatcher):
         self.register_event_type('on_logs_output')
         self.register_event_type('on_secrets_output')
         self.register_event_type('on_deployments_output')
+        self.register_event_type('on_describe_output')
 
     def safe_load_kube_config(self):
         """Mock loading kube config (no-op)."""
@@ -69,6 +70,34 @@ class DummyAzureClient(EventDispatcher):
 
     def on_logs_output(self, output):
         """Event handler for logs output."""
+        pass
+
+    def get_describe_pod(self, pod, namespace):
+        """Mock fetching pod description."""
+        def fetch_describe(dt):
+            try:
+                mock_yaml = f"""apiVersion: v1
+                                kind: Pod
+                                metadata:
+                                name: {pod}
+                                namespace: {namespace}
+                                spec:
+                                containers:
+                                - name: mock-container
+                                    image: nginx:latest
+                                status:
+                                phase: Running
+                                startTime: "2025-09-20T00:00:00Z"
+                                conditions:
+                                - type: Ready
+                                    status: "True" """
+                self.dispatch('on_describe_output', mock_yaml)
+            except Exception as e:
+                self.dispatch('on_describe_output', f"Error describing pod: {str(e)}")
+        Clock.schedule_once(fetch_describe, 1)  # Simulate delay
+
+    def on_describe_output(self, output):
+        """Event handler for describe output."""
         pass
 
     def get_secrets(self, namespace):
