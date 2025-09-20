@@ -110,7 +110,7 @@ class AzureClient(EventDispatcher):
         """Event handler for logs output."""
         pass
 
-    def get_pod_describe(self, pod, namespace):
+    def get_describe_pod(self, pod, namespace):
         """Fetch detailed description of a pod using Kubernetes SDK asynchronously."""
         def fetch_describe():
             try:
