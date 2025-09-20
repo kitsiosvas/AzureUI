@@ -6,8 +6,8 @@ from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from datetime import datetime, timezone
 from humanize import naturaltime
-import yaml
 import logging
+
 
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 logging.getLogger('http.client').setLevel(logging.WARNING)
@@ -110,12 +110,86 @@ class AzureClient(EventDispatcher):
         """Event handler for logs output."""
         pass
 
-    def get_describe_pod(self, pod, namespace):
+    def get_pod_describe(self, pod, namespace):
         """Fetch detailed description of a pod using Kubernetes SDK asynchronously."""
         def fetch_describe():
             try:
+                # Get pod details
                 pod_obj = self.core_v1.read_namespaced_pod(name=pod, namespace=namespace)
-                output = yaml.dump(pod_obj.to_dict(), default_flow_style=False, indent=2)
+                
+                # Build formatted output like kubectl describe
+                lines = []
+                lines.append(f"Name:         {pod_obj.metadata.name}")
+                lines.append(f"Namespace:    {pod_obj.metadata.namespace}")
+                lines.append(f"Priority:     {getattr(pod_obj, 'priority', 0) or 0}")
+                if pod_obj.spec.node_name:
+                    lines.append(f"Node:         {pod_obj.spec.node_name}/{pod_obj.status.host_ip or 'N/A'}")
+                lines.append(f"Start Time:   {pod_obj.metadata.creation_timestamp}")
+                lines.append(f"Labels:       {pod_obj.metadata.labels or '<none>':10}")
+                lines.append(f"Annotations:  {pod_obj.metadata.annotations or '<none>':10}")
+                lines.append(f"Status:       {pod_obj.status.phase}")
+                if pod_obj.status.pod_ip:
+                    lines.append(f"IP:           {pod_obj.status.pod_ip}")
+                lines.append("IPs:")
+                lines.append(f"  IP:  {pod_obj.status.pod_ip or 'N/A'}")
+                
+                # Containers
+                lines.append("Containers:")
+                for container in pod_obj.spec.containers:
+                    lines.append(f"  {container.name}:")
+                    lines.append(f"    Container ID:   {pod_obj.status.container_statuses[0].container_id if pod_obj.status.container_statuses else 'N/A'}")  # Simplify for single; extend for multi
+                    lines.append(f"    Image:          {container.image}")
+                    # State (Running/Waiting/Terminated)
+                    if pod_obj.status.container_statuses:
+                        state = pod_obj.status.container_statuses[0].state  # Assume first; loop for multi
+                        if state.running:
+                            lines.append(f"    State:          Running")
+                            lines.append(f"      Started:      {state.running.started_at}")
+                        elif state.waiting:
+                            lines.append(f"    State:          Waiting")
+                            lines.append(f"      Reason:        {state.waiting.reason}")
+                        elif state.terminated:
+                            lines.append(f"    State:          Terminated")
+                            lines.append(f"      Reason:        {state.terminated.reason}")
+                    lines.append(f"    Ready:          {pod_obj.status.container_statuses[0].ready if pod_obj.status.container_statuses else 'False'}")
+                    lines.append(f"    Restart Count:  {pod_obj.status.container_statuses[0].restart_count if pod_obj.status.container_statuses else 0}")
+                    lines.append("    Environment:    <none>")
+                    lines.append("    Mounts:")
+                    for volume_mount in container.volume_mounts or []:
+                        lines.append(f"      {volume_mount.mount_path} from {volume_mount.name} ({'ro' if volume_mount.read_only else 'rw'})")
+                
+                # Conditions
+                lines.append("Conditions:")
+                lines.append("  Type              Status")
+                for cond in pod_obj.status.conditions or []:
+                    status = "True " if cond.status == "True" else "False" if cond.status == "False" else cond.status
+                    lines.append(f"  {cond.type:<18} {status:<6}")
+                
+                # Volumes
+                if pod_obj.spec.volumes:
+                    lines.append("Volumes:")
+                    for vol in pod_obj.spec.volumes:
+                        lines.append(f"  {vol.name}:")
+                        lines.append(f"    Type:            {type(vol).__name__} ({vol.__dict__})")  # Simplified; expand as needed
+                
+                lines.append(f"QoS Class:           {getattr(pod_obj, 'qos_class', '<none>')}")
+                lines.append("Node-Selectors:      <none>")
+                lines.append("Tolerations:         <none>")  # Add parsing if needed
+                
+                # Events
+                events_api = client.EventsV1Api()
+                events = events_api.list_namespaced_event(namespace, field_selector=f'involvedObject.name={pod}')
+                if events.items:
+                    lines.append("Events:")
+                    lines.append("  Type    Reason     Age   From               Message")
+                    lines.append("  ----    ------     ----  ----               -------")
+                    for event in events.items:
+                        age = naturaltime(datetime.now(timezone.utc) - event.last_timestamp.replace(tzinfo=timezone.utc)) if event.last_timestamp else "N/A"
+                        lines.append(f"  Normal  {event.reason:<10} {age:<5} {event.source.component or 'N/A':<18} {event.message}")
+                else:
+                    lines.append("Events:               <none>")
+                
+                output = "\n".join(lines)
                 Clock.schedule_once(lambda dt: self.dispatch('on_describe_output', output), 0)
             except ApiException as e:
                 error_output = f"Error describing pod: {e.reason} ({e.status})"
