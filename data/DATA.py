@@ -23,12 +23,12 @@ SUBSCRIPTIONS = [
 ]
 
 NAMESPACES = [
-    Namespace("global-ai-mlops-sit", "SIT"),
-    Namespace("global-ai-mlops-prod", "PROD"),
-    Namespace("global-ai-cgd-sit", "SIT"),
-    Namespace("global-ai-cgd-prod", "PROD"),
-    Namespace("global-ai-cgd-pci-prod", "PROD"),
-    Namespace("global-ai-cgd-pci-sit", "SIT"),
+    Namespace("namespace-1-sit", "SIT"),
+    Namespace("namespace-1-prod", "PROD"),
+    Namespace("namespace-2-sit", "SIT"),
+    Namespace("namespace-2-prod", "PROD"),
+    Namespace("namespace-3-prod", "PROD"),
+    Namespace("namespace-3-sit", "SIT"),
 ]
 
 ENVIRONMENTS = ["SIT", "UAT", "PROD"]
